@@ -9,7 +9,7 @@ Two skills that generate a **review prompt** for a fresh external reviewer — o
 
 ## Credits
 
-**This is not our work.** The workflow was designed by someone else, who shared their files directly; every file under `skills/` is a byte-for-byte copy of theirs, verified with `diff -r` against the original at packaging time, and published with their permission. What this repository adds is the plugin manifest and this README.
+**The workflow is not ours.** It was designed by someone else, who shared their files directly, and it is published here with their permission. Both skills in this plugin are their files, unchanged — unlike the other two plugins in this workflow, nothing here needed adapting, because a review prompt does not care which tracker the plan came from.
 
 `MANUAL.html` in this folder is their manual for the complete five-step workflow; these two skills sit at steps 4–5.
 

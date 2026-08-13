@@ -9,7 +9,7 @@
     {
       "name": "create-master-plan",
       "source": "./plugins/create-master-plan",
-      "description": "Step 1 of a plan-first multi-agent workflow, packaged verbatim from its author's own files: pull a ticket with its linked issues, Confluence pages and attachments, scan the repo's docs/ exhaustively, detect the tech stack, interview you over a coverage matrix, and write issue.specs plus master-plan.md."
+      "description": "Step 1 of a plan-first multi-agent workflow: pull a ticket from GitHub by default (Jira, Linear and free-form text are adapter profiles), follow its linked items, cited documents and attachments, scan the repo's docs/ exhaustively, detect the tech stack, interview you over a coverage matrix, and write issue.specs plus master-plan.md."
     },
     {
       "name": "decompose-plan",

@@ -12,7 +12,7 @@ A project-agnostic, tech-stack-aware adaptation of the spec-interview pattern (i
 
 - Use the `AskUserQuestion` tool for ALL questions. Never ask in free-form prose.
 - Group related questions into a single `AskUserQuestion` call when possible (up to 4 questions per call).
-- Each question must be **non-obvious** — skip anything `issue.specs` (Description, AC, Comments, Linked issues, Confluence, Interview Notes from a prior run) already answers.
+- Each question must be **non-obvious** — skip anything `issue.specs` (Description, AC, Comments, Linked issues, Referenced documents, Interview Notes from a prior run) already answers.
 - Ground questions in the code BEFORE asking; only ask the user about what cannot be inferred. When the repository has a `.codegraph/` directory, inspect the surface area with a single `codegraph_explore` call (or `codegraph explore "<symbols or question>"`) instead of a `Glob`/`Grep`/`Read` loop — one call returns the relevant symbols' source, the call paths between them, and what depends on them, at a small fraction of the tokens a read-every-match loop costs. Fall back to `Read`, `Glob`, `Grep` when the repo is not indexed.
 - Continue until either: the user signals completion (e.g. "that's enough", "write the plan"), OR every box in the coverage matrix below is ticked.
 - The first question is always **stack confirmation** when Step 5.5 of the parent skill found ambiguity (or when the project is multi-stack). Otherwise skip and proceed.
@@ -29,7 +29,7 @@ Tick each area only after at least one targeted question has been asked AND answ
 - [ ] **UI / UX** *(only if user-facing surface exists)* — flows, states, error messages, loading states, empty states, accessibility (keyboard nav, screen reader, color contrast).
 - [ ] **Edge cases** — null / empty / max-size / concurrent / cancellation / network failure / partial failure / race conditions.
 - [ ] **Tradeoffs** — what alternatives were considered, and why rejected?
-- [ ] **Acceptance criteria** — concrete, testable, checkbox form. Match Jira's AC if present; fill gaps.
+- [ ] **Acceptance criteria** — concrete, testable, checkbox form. Match the ticket's stated AC if present; fill gaps.
 - [ ] **Testing strategy** — unit / integration / e2e split, test framework + assertion lib + mocking lib (from the stack profile), data strategy, fixture vs synthetic.
 - [ ] **Validation requirements** — build gate, lint gate, type-check gate, code-review gate, manual smoke test, operator verification.
 
@@ -105,7 +105,7 @@ If `## Interview Notes` doesn't exist yet, create it. Never append elsewhere.
 When Step 8 writes `master-plan.md`, ensure it includes ALL of these sections — shaped by `superpowers:writing-plans` and the matching stack profile from `tech-stack-profiles.md`:
 
 ### 1. Context
-Brief paragraph: which Jira ticket, why this plan exists, who asked for it. Link back to `issue.specs` and the `attachments/` folder.
+Brief paragraph: which ticket, why this plan exists, who asked for it. Link back to `issue.specs` and the `attachments/` folder.
 
 ### 2. Pre-flight Checklist
 Stack-specific — built from the matching profile's "Conventions location" field plus the project's CLAUDE.md (if present). Example shapes:
@@ -146,7 +146,7 @@ Concrete requirements discovered during the interview. Group by layer (data, per
 **Tech stack(s):** {pulled from Step 5.5; one line per stack for mixed projects}
 **Primary owner-skill:** {e.g. dotnet-senior-developer-skill / frontend-design / delphi-senior-developer-skill}
 **Specialised agents that may help:** {e.g. code-reviewer, security-auditor, sql-pro, performance-engineer}
-**MCP servers needed:** {e.g. serena, sequential-thinking, atlassian, context7}
+**MCP servers needed:** {e.g. serena, sequential-thinking, context7 — the default GitHub source needs none}
 
 **Sketch of the work** (the actual phase breakdown is left to /decompose-plan):
 
@@ -173,7 +173,7 @@ Checklist of gates the work must pass — pulled from the matching stack profile
 - **Delphi:** `msbuild <groupproj> /p:Config=Debug` clean; DUnitX test exe(s) green; manual exercise of the binary.
 
 ### 9. Acceptance Criteria
-Checkbox list extracted from Jira AC (if present) PLUS every additional criterion surfaced by the interview. Each criterion must be testable.
+Checkbox list extracted from the ticket's stated AC (if present) PLUS every additional criterion surfaced by the interview. Each criterion must be testable.
 
 ### 10. Success Criteria
 

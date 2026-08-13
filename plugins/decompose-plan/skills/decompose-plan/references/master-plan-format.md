@@ -8,9 +8,9 @@ A master plan that does NOT include every section below is still usable — the 
 
 ### 1. H1 title
 
-`# {PLAN_KEY} — {Short title}` (e.g. `# {{TICKET_PREFIX}}-1234 — Master Plan: Iteration 02 (Server Readiness Gate + License Validation)`).
+`# {PLAN_KEY} — {Short title}` (e.g. `# GH-412 — Master Plan: Iteration 02 (Server Readiness Gate + License Validation)`). `{PLAN_KEY}` is the ticket id `create-master-plan` derived — `GH-<number>` for the default GitHub source, a tracker key like `ACME-1234` otherwise.
 
-The `{PLAN_KEY}` is used as a prefix in every phase file (`# {{TICKET_PREFIX}}-1234 / Phase 02 — …`) and in commit messages (`{{TICKET_PREFIX}}-1234: …`).
+The `{PLAN_KEY}` is used as a prefix in every phase file (`# GH-412 / Phase 02 — …`) and in commit messages (`GH-412: …`) — unless the repository's `git log` shows a different convention, which wins.
 
 ### 2. Required sub-skill notice (optional but recommended)
 

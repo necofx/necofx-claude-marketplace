@@ -146,13 +146,13 @@
 <div class="flow">
   <div class="flow-step"><span class="flow-num">1</span><div class="flow-body">
     <strong>Create the master plan</strong>
-    <span class="cmd">/create-master-plan ACME-1234</span>
-    <p class="out">Fetches Jira + Confluence + local docs, interviews you on the gaps →
+    <span class="cmd">/create-master-plan 412</span>
+    <p class="out">Fetches the ticket + cited documents + local docs, interviews you on the gaps →
       <code>issue.specs</code>, <code>master-plan.md</code></p>
   </div></div>
   <div class="flow-step"><span class="flow-num">2</span><div class="flow-body">
     <strong>Decompose into rounds</strong>
-    <span class="cmd">/decompose-plan docs/plans/ACME-1234</span>
+    <span class="cmd">/decompose-plan docs/plans/GH-412</span>
     <p class="out">Atomic phases, grouped into parallel rounds, file-conflict checked →
       <code>phases/</code>, <code>tasks.md</code>, <code>execute-plan.md</code>, <code>handoff.md</code></p>
   </div></div>
@@ -180,15 +180,15 @@
 
 <h2 id="step1">1 · Create the master plan</h2>
 
-<pre><code>/create-master-plan ACME-1234</code></pre>
+<pre><code>/create-master-plan 412</code></pre>
 
-<p>Takes a bare ticket key or a full Atlassian URL. It does four things:</p>
+<p>Takes a GitHub issue number by default, or a tracker key or URL. It does four things:</p>
 
 <div class="tablewrap">
 <table>
   <thead><tr><th>Phase of the step</th><th>What happens</th></tr></thead>
   <tbody>
-    <tr><td>Fetch</td><td>The issue with all fields, comments and attachments; up to <strong>5 linked issues</strong> (parent epic → blocks → relates-to → sub-tasks) and <strong>3 Confluence pages</strong> (URLs in the ticket first, then a CQL top-up).</td></tr>
+    <tr><td>Fetch</td><td>The source comes from a detection ladder in <code>references/source-adapters.md</code> — <strong>GitHub by default</strong>, Jira and Linear as profiles, free-form text as the fallback — and every adapter normalises into one record, so no later step knows which one ran. It pulls the issue with all fields, comments and attachments; up to <strong>5 linked items</strong> (parent epic → blocks → relates-to → sub-tasks) and <strong>3 cited documents</strong>, quoted in full rather than linked. On GitHub, a referenced merged PR's file list is the highest-value field in the whole ingestion.</td></tr>
     <tr><td>Scan</td><td><code>docs/**/*.md</code> <em>exhaustively</em> — no directory excluded, no cap — for the ticket key, component names and distinctive nouns. Long output is expected; it surfaces the internal doc nobody remembered.</td></tr>
     <tr><td>Detect stack</td><td>Ticket text → root markers (<code>*.sln</code>, <code>package.json</code>, <code>*.dproj</code>…) → ask. Mixed stacks get a layer-to-stack map. This drives every build command, test framework and rule citation downstream.</td></tr>
     <tr><td>Interview</td><td>Structured questions over a coverage matrix: goal, constraints, scope boundary, implementation, UI/UX, edge cases, tradeoffs, acceptance criteria, testing, validation gates. Skips anything already answered; grounds each question in the code first.</td></tr>
@@ -204,11 +204,11 @@
     what was already settled.</p>
 </div>
 
-<p>Stops at <code>master-plan.md</code>. Never decomposes, never writes to Jira.</p>
+<p>Stops at <code>master-plan.md</code>. Never decomposes, never writes back to the tracker.</p>
 
 <h2 id="step2">2 · Decompose into rounds</h2>
 
-<pre><code>/decompose-plan docs/plans/ACME-1234</code></pre>
+<pre><code>/decompose-plan docs/plans/GH-412</code></pre>
 
 <p><strong>Phase</strong> — one atomic unit for one agent. Single-focus (an "and" in the
   goal means split it), independently verifiable, 30 min – 3 h, dependencies named not
@@ -308,9 +308,9 @@ recommend at score >= 3, cap 4 per phase</code></pre>
 <table>
   <thead><tr><th>File</th><th>By</th><th>Contains</th></tr></thead>
   <tbody>
-    <tr><td><code>issue.specs</code></td><td>1</td><td>Description, AC, comments, linked issues, Confluence, attachments, related local docs, context gaps — plus interview notes.</td></tr>
+    <tr><td><code>issue.specs</code></td><td>1</td><td>Description, AC, comments, linked issues, referenced documents, attachments, related local docs, context gaps — plus interview notes.</td></tr>
     <tr><td><code>master-plan.md</code></td><td>1</td><td>Context, tech stack, pre-flight checklist, why, out of scope, technical requirements by layer, implementation outline, test config, validation gates, AC.</td></tr>
-    <tr><td><code>attachments/</code></td><td>1</td><td>Downloaded Jira attachments. Failures are recorded in Context Gaps, never abort the run.</td></tr>
+    <tr><td><code>attachments/</code></td><td>1</td><td>Downloaded ticket attachments. Failures are recorded in Context Gaps, never abort the run.</td></tr>
     <tr><td><code>phases/PHASE-NN-*.md</code></td><td>2</td><td>Goal, architecture, stack, exhaustive create/modify list, dependencies, owner agent, risk/effort, skills, documents to read, atomic steps, verification, notes downstream.</td></tr>
     <tr><td><code>tasks.md</code></td><td>2 + everyone</td><td>Single source of truth for status: phase table, rounds graph, conflict matrix, update protocol, per-phase progress, blockers, decisions, final summary.</td></tr>
     <tr><td><code>execute-plan.md</code></td><td>2</td><td>Round list + the coordinator prompt you paste.</td></tr>
@@ -326,7 +326,7 @@ recommend at score >= 3, cap 4 per phase</code></pre>
 <table>
   <thead><tr><th>Skill</th><th>Role</th></tr></thead>
   <tbody>
-    <tr><td><code>create-master-plan</code></td><td>Ticket → researched plan. 4 references: interview protocol, issue.specs template, master-plan template, tech-stack profiles.</td></tr>
+    <tr><td><code>create-master-plan</code></td><td>Ticket → researched plan. 5 references: source adapters, interview protocol, issue.specs template, master-plan template, tech-stack profiles.</td></tr>
     <tr><td><code>decompose-plan</code></td><td>Plan → phases, rounds, orchestrator. 6 references: master-plan format, phase / tasks / execute-plan / handoff templates, skill-matching heuristics, tech-stack profiles.</td></tr>
   </tbody>
 </table>
@@ -341,7 +341,7 @@ recommend at score >= 3, cap 4 per phase</code></pre>
   <tbody>
     <tr><td><code>superpowers</code> plugin</td><td><code>writing-plans</code> (plan + phase shape), <code>subagent-driven-development</code> (dispatch), <code>test-driven-development</code>, <code>verification-before-completion</code> (the done gate), <code>dispatching-parallel-agents</code></td></tr>
     <tr><td><code>/code-review</code></td><td>Step 4 <span class="pill req">built in</span></td></tr>
-    <tr><td><code>atlassian</code> MCP</td><td>Step 1's fetch. Skippable if you plan from a plain description instead.</td></tr>
+    <tr><td><code>gh</code> CLI</td><td>Step 1's default fetch, authenticated. Swap in an <code>atlassian</code> or <code>linear</code> MCP for those trackers; skippable entirely if you plan from a plain description.</td></tr>
   </tbody>
 </table>
 </div>
@@ -377,7 +377,7 @@ recommend at score >= 3, cap 4 per phase</code></pre>
 <table>
   <thead><tr><th>Server</th><th>For</th><th></th></tr></thead>
   <tbody>
-    <tr><td><code>atlassian</code></td><td>Jira, Confluence, attachments</td><td><span class="pill req">step 1</span></td></tr>
+    <tr><td><code>atlassian</code> / <code>linear</code></td><td>Only if you use those trackers — the default GitHub source needs no MCP</td><td><span class="pill">optional</span></td></tr>
     <tr><td><code>codegraph</code></td><td>Code navigation in one call — <a href="#codegraph">see below</a></td><td><span class="pill">strongly recommended</span></td></tr>
     <tr><td><code>serena</code></td><td>Semantic code search</td><td><span class="pill">optional</span></td></tr>
     <tr><td><code>sequential-thinking</code></td><td>Structured reasoning on decomposition</td><td><span class="pill">optional</span></td></tr>
@@ -473,13 +473,22 @@ recommend at score >= 3, cap 4 per phase</code></pre>
 #   :test-driven-development, :verification-before-completion,
 #   :dispatching-parallel-agents</code></pre>
 
-<h3>3 · Atlassian MCP <span class="pill req">step 1</span></h3>
+<h3>3 · The ticket source <span class="pill">GitHub by default</span></h3>
+<p><strong>Nothing to install.</strong> The default adapter uses the <code>gh</code> CLI —
+  confirm <code>gh auth status</code> is happy and you are done. Plan ids are
+  <code>GH-&lt;issue number&gt;</code>.</p>
+<p><strong>Jira or Linear instead?</strong> Connect the matching MCP server and declare the
+  source in the planning repository's <code>CLAUDE.md</code>:</p>
 <pre><code>claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp
 claude mcp list          # expect: atlassian - Connected</code></pre>
 <p>First use opens a browser for OAuth; you need read access to the project and the
-  Confluence spaces your tickets cite. Set <code>{{JIRA_CLOUD_ID}}</code> to your site
-  host — the <code>your-org.atlassian.net</code> part of a ticket URL.</p>
-<p><strong>No Jira?</strong> Hand-write <code>issue.specs</code> from
+  Confluence spaces your tickets cite. Tell the skill your site host — the
+  <code>your-org.atlassian.net</code> part of a ticket URL — since it cannot discover it.
+  If both an Atlassian and a Linear MCP are connected, a bare <code>ACME-1234</code>
+  matches two adapters and the skill will ask which you meant; the <code>CLAUDE.md</code>
+  line is what stops it asking every time.</p>
+<p><strong>No tracker at all?</strong> Paste the requirement and the free-form adapter takes
+  it, or hand-write <code>issue.specs</code> from
   <code>references/issue-specs-template.md</code> and start at
   <code>/decompose-plan</code>. Steps 2–5 have no tracker dependency.</p>
 
@@ -525,20 +534,13 @@ codegraph init && codegraph status</code></pre>
     plain text files and the skill vanishes with a clean <code>git status</code>.</p>
 </div>
 
-<h3>7 · Replace the placeholders</h3>
-<div class="tablewrap">
-<table>
-  <thead><tr><th>Token</th><th>Meaning</th><th>Example</th></tr></thead>
-  <tbody>
-    <tr><td><code>{{JIRA_CLOUD_ID}}</code></td><td>Atlassian site host</td><td><code>acme.atlassian.net</code></td></tr>
-    <tr><td><code>{{TICKET_PREFIX}}</code></td><td>Jira project key prefix</td><td><code>ACME</code></td></tr>
-    <tr><td><code>{{PLANS_DIR}}</code></td><td>Where plan folders go</td><td><code>docs/plans</code></td></tr>
-  </tbody>
-</table>
-</div>
-<p>Those three are read by the workflow; the rest are documentation for your team — see
-  <code>PLACEHOLDERS.md</code>.</p>
-<pre><code>grep -rn "{{" .claude CLAUDE.md     # nothing required should remain</code></pre>
+<h3>7 · Point it at your plans directory <span class="pill">optional</span></h3>
+<p>Plan folders default to <code>docs/plans/&lt;TICKET-ID&gt;/</code>. To put them elsewhere,
+  say so in the planning repository's <code>CLAUDE.md</code> — and give
+  <code>decompose-plan</code> and the review skills the same value, since all three address
+  the same folder and a mismatch means step 2 cannot find what step 1 wrote.</p>
+<p>There are no <code>{{TOKEN}}</code> placeholders left to substitute; the defaults are
+  baked in and the tracker lives behind the adapter layer.</p>
 
 <h3>8 · Decide the git policy</h3>
 <p>Shipped default: <code>settings.json</code> denies every git write and
@@ -564,7 +566,7 @@ codegraph init && codegraph status</code></pre>
   <thead><tr><th>Symptom</th><th>Cause and fix</th></tr></thead>
   <tbody>
     <tr><td>Skill isn't found</td><td>Must be at <code>.claude/skills/&lt;name&gt;/SKILL.md</code>, exactly one level deep. Check for a grouping subfolder; on Windows check <code>core.symlinks</code>.</td></tr>
-    <tr><td>Jira fetch fails</td><td><code>claude mcp list</code>, re-authenticate. Confirm <code>{{JIRA_CLOUD_ID}}</code> is the bare host — no <code>https://</code>, no path.</td></tr>
+    <tr><td>Ticket fetch fails</td><td>On GitHub: <code>gh auth status</code>, and confirm the issue number exists in <em>this</em> repository. On Jira or Linear: <code>claude mcp list</code>, re-authenticate, and confirm the site host is the bare host — no <code>https://</code>, no path.</td></tr>
     <tr><td>Vague or overlapping phases</td><td>An underspecified master plan. Don't patch the phases — sharpen the plan. Inferred sections are flagged in <code>tasks.md § Coordination Notes</code>; read those flags.</td></tr>
     <tr><td>Same-round file conflict</td><td>The matrix missed it. Move one phase to the next round, or add an explicit coordination rule naming who edits first.</td></tr>
     <tr><td>Coordinator dispatches sequentially</td><td>All phases in a round must go in <em>one</em> message with one <code>Agent</code> call each. Sequential dispatch forfeits the entire point of rounds.</td></tr>
@@ -587,7 +589,7 @@ codegraph init && codegraph status</code></pre>
     <tr><td>Rounds, not a dependency queue</td><td>A queue is faster but leaves an arbitrary subset of phases in flight against a moving codebase. Rounds buy a barrier where the full suite runs before anything else starts — without it, a round-1 mistake is found by five round-2 agents at once.</td></tr>
     <tr><td>Commits batched, never per-phase</td><td>Parallel agents produce interleaved partial commits nobody can review, and per-phase approval stalls the run on every finish.</td></tr>
     <tr><td>Rules cited, never copied</td><td>A copied rule drifts from the real one within weeks — and then agents follow the stale copy with total confidence.</td></tr>
-    <tr><td>The interview isn't optional</td><td>Jira holds what was written down. The real constraint, the rejected alternative, the reason it matters — none of that is in the tracker. Skipping it yields a plan that is fluent, complete-looking and subtly wrong.</td></tr>
+    <tr><td>The interview isn't optional</td><td>The tracker holds what was written down. The real constraint, the rejected alternative, the reason it matters — none of that is in the tracker. Skipping it yields a plan that is fluent, complete-looking and subtly wrong.</td></tr>
     <tr><td>One conversation per step</td><td>Step 1 ends with a large research payload in context; step 3's coordinator needs room for the whole plan plus every agent's reports. The artifacts on disk make the split free.</td></tr>
   </tbody>
 </table>
@@ -603,9 +605,7 @@ codegraph init && codegraph status</code></pre>
   <li><strong>New specialist agent</strong> — drop it in <code>.claude/agents/</code> with
     frontmatter. The description is what the matcher scores against, so name the stack and
     domain explicitly.</li>
-  <li><strong>Different tracker</strong> — only step 1's fetch is Jira-shaped. Replace
-    steps 2–4 of <code>create-master-plan/SKILL.md</code> and keep writing the same
-    <code>issue.specs</code>; everything downstream reads that file, not the tracker.</li>
+  <li><strong>Different tracker</strong> — add a profile to <code>create-master-plan/references/source-adapters.md</code> with its row in the detection ladder, and do <em>not</em> touch <code>SKILL.md</code>. Every adapter normalises to the same record, and everything downstream reads that record rather than the tracker. If a new tracker seems to need a change in the skill body, the record is missing a field and adding the field is the fix.</li>
 </ul>
 
 <footer>

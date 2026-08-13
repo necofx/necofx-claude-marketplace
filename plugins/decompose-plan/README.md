@@ -6,9 +6,9 @@ Then it writes one file per phase, a shared status board, the coordinator prompt
 
 ## Credits
 
-**This is not our work.** The workflow was designed by someone else, who uses it daily and shared their files directly; every file under `skills/` is a byte-for-byte copy of theirs, verified with `diff -r` against the original at packaging time. Nothing here is a reimplementation or an improvement, and it is published with their permission.
+**The workflow is not ours.** It was designed by someone else, who uses it daily and shared their files directly, and it is published here with their permission. The structure, the reasoning and nearly all of the prose are theirs.
 
-What this repository adds is the packaging: a plugin manifest, this README, and `config.md`. Those are the only files here that are not theirs.
+The only change in this plugin is that the original's `{{TICKET_PREFIX}}` placeholder is gone — plan ids now come from whatever [`create-master-plan`](../create-master-plan/) derived (`GH-412` by default). Nothing else was touched.
 
 `MANUAL.html` in this folder is their manual for the complete five-step workflow, and it explains the reasoning this README only summarises.
 
@@ -44,11 +44,7 @@ Every phase names an `owner_agent`, used by the coordinator as `subagent_type`:
 
 That marketplace (`claude-code-workflows`, MIT) ships the generic ones the skill cites — `code-reviewer`, `security-auditor`, `sql-pro`, `performance-engineer`, `backend-architect`, `architect-review`, `debugger` — inside topical bundles. Install the bundles matching your work. Without them, phases fall back to `general-purpose`, which the phase template explicitly allows.
 
-### 4. Configure `{{TICKET_PREFIX}}`
-
-One unresolved placeholder, low stakes — it only names the generated phase headings. If you already added the block from [`create-master-plan`](../create-master-plan/) to your repository's `CLAUDE.md`, it is covered; do not write a second one. Otherwise see [`config.md`](config.md).
-
-### 5. Optional: CodeGraph
+### 4. Optional: CodeGraph
 
 ```sh
 npm install -g @colbymchenry/codegraph
@@ -59,7 +55,7 @@ cd /path/to/your/repo && codegraph init
 
 Used in two places that matter here: checking the plan's claimed dependencies against real callers, and resolving each phase's true modify-list. **The registration file the plan forgot to mention is the usual source of a same-round conflict**, and `codegraph impact` finds it where prose does not. Every instruction is conditional on a `.codegraph/` directory existing, so an unindexed repo just costs more tokens.
 
-### 6. Restart
+### 5. Restart
 
 Skills load at session start.
 

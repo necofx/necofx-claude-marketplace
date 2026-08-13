@@ -8,13 +8,13 @@ For mixed-stack plans (e.g. .NET API + React UI), the Tech Stack section lists e
 
 ---
 
-# {JIRA-KEY} — Master Plan: {Short title}
+# {TICKET-ID} — Master Plan: {Short title}
 
 ## Context
 
-This plan implements `{JIRA-KEY}`. Sourced from:
+This plan implements `{TICKET-ID}`. Sourced from:
 
-- **Jira ticket:** {JIRA-KEY} ({status}, reported by {reporter}, assigned to {assignee})
+- **Ticket:** {TICKET-ID} ({state}, opened by {author}, assigned to {assignee}) — source: {github | jira | linear | file | free-form}
 - **Spec:** [`issue.specs`](issue.specs) in this folder
 - **Attachments:** see [`attachments/`](attachments/) in this folder (or `_(no attachments)_`)
 - **Date:** {YYYY-MM-DD}
@@ -136,7 +136,7 @@ Grouped by layer when applicable. Each requirement is a complete sentence descri
 **Tech stack(s):** {pulled from § Tech Stack above; one line per stack for mixed projects}
 **Primary owner-skill:** `{e.g. dotnet-senior-developer-skill / frontend-design / delphi-senior-developer-skill}`
 **Specialised agents that may help:** {e.g. `code-reviewer`, `security-auditor`, `sql-pro`, `react-senior-developer`, `blazor-frontend-developer`, `performance-engineer`}
-**MCP servers needed:** {e.g. `serena` for code search, `sequential-thinking` for complex reasoning, `atlassian` for ticket context, `context7` for library docs, `chrome-devtools` for React perf debugging}
+**MCP servers needed:** {e.g. `serena` for code search, `sequential-thinking` for complex reasoning, `context7` for library docs, `chrome-devtools` for React perf debugging. The default GitHub source needs none — it uses the `gh` CLI.}
 
 **Sketch of the work** (atomic phase decomposition is left to `/decompose-plan`):
 
@@ -218,8 +218,8 @@ Grouped by layer when applicable. Each requirement is a complete sentence descri
 
 Checkbox list. Every item must be **testable** — observable in code, runtime behavior, log output, or operator console.
 
-- [ ] {Criterion 1 — from Jira AC, verbatim}
-- [ ] {Criterion 2 — from Jira AC}
+- [ ] {Criterion 1 — from the ticket's stated AC, verbatim}
+- [ ] {Criterion 2 — from the ticket's stated AC}
 - [ ] {Criterion 3 — surfaced by the interview}
 - [ ] {…}
 

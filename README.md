@@ -51,9 +51,9 @@ claude plugin list               # which plugins are installed and enabled
 
 | Plugin | What it does | Version | Docs |
 |---|---|---|---|
-| `create-master-plan` | Step 1 of a plan-first multi-agent workflow: pulls a ticket with its links, Confluence pages and attachments, scans the repo's docs, detects the stack, interviews you over a coverage matrix, and writes `issue.specs` + `master-plan.md`. | 0.1.0 | [README](plugins/create-master-plan/README.md) |
-| `decompose-plan` | Step 2: turns that plan into atomic phases grouped into parallel rounds, file-conflict checked and skill-matched, emitting `phases/`, `tasks.md`, `execute-plan.md` and `handoff.md`. | 0.1.0 | [README](plugins/decompose-plan/README.md) |
-| `plan-review` | Steps 4–5: generates a self-contained review prompt for a fresh external reviewer — of the plan before it is built, or of the real changeset against the plan afterwards. | 0.1.0 | [README](plugins/plan-review/README.md) |
+| `create-master-plan` | Step 1: pulls a ticket — **GitHub by default**, Jira/Linear/free-form as adapter profiles — with its links, cited documents and attachments, scans the repo's docs, detects the stack, interviews you over a coverage matrix, and writes `issue.specs` + `master-plan.md`. | 0.2.0 | [README](plugins/create-master-plan/README.md) |
+| `decompose-plan` | Step 2: turns that plan into atomic phases grouped into parallel rounds, file-conflict checked and skill-matched, emitting `phases/`, `tasks.md`, `execute-plan.md` and `handoff.md`. | 0.2.0 | [README](plugins/decompose-plan/README.md) |
+| `plan-review` | Steps 4–5: generates a self-contained review prompt for a fresh external reviewer — of the plan before it is built, or of the real changeset against the plan afterwards. | 0.1.1 | [README](plugins/plan-review/README.md) |
 
 Install instructions specific to a plugin, its tutorial, its limits and its troubleshooting live in that plugin's own README. Nothing about a plugin is duplicated here.
 
@@ -62,18 +62,18 @@ Install instructions specific to a plugin, its tutorial, its limits and its trou
 They are separate plugins because they run in separate conversations — that is not packaging convenience, it is the design. Step 1 ends with a large research payload in context; step 3's coordinator needs a near-empty window for the whole plan plus every agent's report. Every step's output is a file, so no step depends on a previous conversation still being open.
 
 ```
-/create-master-plan ACME-1234      →  issue.specs · master-plan.md
+/create-master-plan 412            →  issue.specs · master-plan.md
         ↓  new conversation
-/decompose-plan docs/plans/ACME-1234   →  phases/ · tasks.md · execute-plan.md · handoff.md
+/decompose-plan docs/plans/GH-412  →  phases/ · tasks.md · execute-plan.md · handoff.md
         ↓  new conversation
 paste the Coordinator Prompt       →  one agent per phase, a round at a time
         ↓
 /plan-implementation-review        →  a prompt for a fresh reviewer, code against plan
 ```
 
-You can start at step 2: hand-write `issue.specs` and `master-plan.md` and nothing downstream knows the difference. Only step 1 has a tracker dependency.
+You can start at step 2: hand-write `issue.specs` and `master-plan.md` and nothing downstream knows the difference. Only step 1 touches a tracker at all, and it reads GitHub by default — Jira, Linear and pasted text are adapter profiles, selected by a detection ladder.
 
-**The workflow is not ours.** It was designed by someone else, who uses it daily and shared their files directly, and it is published here with their permission — every skill in these three plugins is a byte-for-byte copy of theirs. This repository adds the manifests, the READMEs and the configuration sheets, and nothing else. Their full manual ships inside each plugin as `MANUAL.html`.
+**The workflow is not ours.** It was designed by someone else, who uses it daily and shared their files directly, and it is published here with their permission. The structure, the reasoning and nearly all of the prose are theirs; this repository adds the manifests, the READMEs, and one change to the skills themselves — the original is hard-wired to Jira and carries install-time placeholders, so the tracker was moved behind an adapter layer with GitHub as the default. Their full manual, updated to match, ships inside each plugin as `MANUAL.html`.
 
 ## Updates
 

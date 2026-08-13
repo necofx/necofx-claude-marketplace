@@ -6,26 +6,27 @@ Sections 10+ (Interview Notes, Plan) are appended later by Steps 7–8 of the pa
 
 ---
 
-# {JIRA-KEY} — {Summary}
+# {TICKET-ID} — {Title}
 
 **Status:** {status}  
-**Issue type:** {issuetype}  
+**Type:** {type}  
 **Priority:** {priority}  
-**Reporter:** {reporter displayName} (`{reporter accountId}`)  
-**Assignee:** {assignee displayName} (`{assignee accountId}`)  
-**Components:** {comma-separated}  
+**Author:** {author}  
+**Assignee:** {assignee}  
+**Components:** {comma-separated, or `_(not supplied by this source)_`}  
 **Labels:** {comma-separated}  
-**Fix versions:** {comma-separated}  
+**Milestone / fix version:** {comma-separated, or `_(none)_`}  
 **Due date:** {YYYY-MM-DD or `_(none)_`}  
-**Parent epic:** {epic key + title, or `_(none)_`}  
+**Parent:** {epic / tracking issue + title, or `_(none)_`}  
+**Source:** {github | jira | linear | file | free-form}  
 **Fetched at:** {YYYY-MM-DD HH:MM}  
-**Plan folder:** `{{PLANS_DIR}}/{JIRA-KEY}/`
+**Plan folder:** `docs/plans/{TICKET-ID}/`
 
 ---
 
 ## 1. Description
 
-{Raw Jira description — markdown, verbatim. Do NOT summarise. If empty, write `_(empty in Jira — interview will fill it)_`.}
+{Raw ticket body — markdown, verbatim. Do NOT summarise. If empty, write `_(empty in the source — the interview will fill it)_`.}
 
 ## 2. Acceptance Criteria
 
@@ -37,25 +38,25 @@ Sections 10+ (Interview Notes, Plan) are appended later by Steps 7–8 of the pa
 
 ### {Author display name} · {YYYY-MM-DD HH:MM}
 
-{Comment body, verbatim. Keep ADF / markdown formatting where possible.}
+{Comment body, verbatim. Keep the original markdown formatting where possible.}
 
 {If no comments: `_(no comments on this ticket)_`}
 
-## 4. Linked Jira issues
+## 4. Linked issues
 
-{For each linked issue (up to 5, prioritised per SKILL.md Step 4a):}
+{For each linked item (up to 5, prioritised per SKILL.md Step 4a):}
 
-### {KEY} · {link type} · {status}
+### {id} · {relation} · {state}
 
-**Summary:** {title}
+**Title:** {title}
 
-{1-paragraph summary of the linked issue's description — focus on what's relevant to {JIRA-KEY}, not the full text.}
+{1-paragraph summary of the linked item — focus on what's relevant to {TICKET-ID}, not the full text. For a MERGED pull request, list the files it touched: that is the cheapest evidence of what already landed.}
 
-{If none: `_(no linked Jira issues)_`}
+{If none: `_(no linked issues)_`}
 
-## 5. Confluence pages
+## 5. Referenced documents
 
-{For each Confluence page fetched (up to 3):}
+{For each document fetched (up to 3) — a Confluence page, an RFC, a design doc, a linked README:}
 
 ### {Page title}
 
@@ -63,11 +64,11 @@ Sections 10+ (Interview Notes, Plan) are appended later by Steps 7–8 of the pa
 
 {Either the full page body if it's short (< 2k chars) or the most relevant excerpt with `[…]` to indicate omissions. Preserve internal headings.}
 
-{If none: `_(no Confluence pages referenced)_`}
+{If none: `_(no documents referenced)_`}
 
 ## 6. Attachments
 
-{Table of every attachment metadata returned by Jira, plus the download outcome:}
+{Table of every attachment the source reported, plus the download outcome:}
 
 | Filename | Size | Mime | Local path | Status |
 |---|---|---|---|---|
@@ -78,7 +79,7 @@ Sections 10+ (Interview Notes, Plan) are appended later by Steps 7–8 of the pa
 
 ## 7. Related local docs
 
-{Exhaustive list from Step 5 of the parent skill — every `docs/**/*.md` file that contains the Jira key OR any component name. May be long; do NOT truncate. Format:}
+{Exhaustive list from Step 5 of the parent skill — every `docs/**/*.md` file that contains the ticket id OR any component name. May be long; do NOT truncate. Format:}
 
 - `{relative-path-from-project-root}` — matched: `{term1}`, `{term2}` — excerpt: `{one line around first match}`
 
@@ -86,7 +87,7 @@ Sections 10+ (Interview Notes, Plan) are appended later by Steps 7–8 of the pa
 
 ## 8. Context Gaps
 
-{Every failure recorded during Steps 2–5 of the parent skill — attachment download fails, Confluence auth fails, Jira fields that came back empty when expected, anything the interview should know about. Format:}
+{Every failure or absence recorded during Steps 2-5 of the parent skill — attachment download fails, document auth fails, fields this source cannot supply, an empty thread on free-form input, anything the interview should know about. An absence is data: say WHY it is empty so a later reader does not read thinness as laziness. Format:}
 
 - {short description of what was missing or failed, plus what to ask the user about in the interview}
 
