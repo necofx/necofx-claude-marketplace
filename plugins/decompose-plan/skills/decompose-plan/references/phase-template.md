@@ -44,7 +44,9 @@ Exhaustive Create / Modify list. The coordinator uses this to detect file-confli
 - Blazor: `dotnet-senior-developer` + `blazor-frontend-developer` (UI portions)
 - React: `react-senior-developer`
 - Delphi: `delphi-senior-developer` (and the `read-delphi-standards` skill)
-- Java / JVM: `java-senior-developer` (or the project's JVM specialist — fall back to `general-purpose` when none is installed)
+- Java / JVM: `java-pro` (from the `jvm-languages` bundle; `scala-pro` for Scala) — fall back to `general-purpose` when not installed
+- Kubernetes / IaC: `kubernetes-architect` (`kubernetes-operations` bundle), `terraform-specialist` or `deployment-engineer` (`cloud-infrastructure` / `cicd-automation`) — `deployment-engineer` is also the right owner for a `Dockerfile` phase
+- Python: `python-pro` (or `django-pro` / `fastapi-pro`) from the `python-development` bundle
 - Cross-cutting: `code-reviewer`, `security-auditor`, `sql-pro`, `performance-engineer`
 
 Used as `subagent_type` by the coordinator. Default to `general-purpose` if no specialist fits.

@@ -36,13 +36,56 @@ This skill loads `superpowers:writing-plans` to shape each phase file. More impo
 
 ### 3. Install the specialist agents — recommended
 
-Every phase names an `owner_agent`, used by the coordinator as `subagent_type`:
+Every phase file carries an **Owner Agent** line. The coordinator passes that name straight to `Agent(subagent_type=…)`. If the name does not resolve to an installed agent, the call falls back to `general-purpose` — the run still works, it just loses the specialist's system prompt. So this step is: install the bundles that ship the agent names your phases will actually cite.
 
 ```
 /plugin marketplace add wshobson/agents
 ```
 
-That marketplace (`claude-code-workflows`, MIT) ships the generic ones the skill cites — `code-reviewer`, `security-auditor`, `sql-pro`, `performance-engineer`, `backend-architect`, `architect-review`, `debugger` — inside topical bundles. Install the bundles matching your work. Without them, phases fall back to `general-purpose`, which the phase template explicitly allows.
+That is Seth Hobson's `claude-code-workflows` marketplace (MIT, 95 bundles). Agents ship **inside topical bundles**, never individually — you install `comprehensive-review` and `code-reviewer` comes with it. The install syntax is therefore:
+
+```
+/plugin install <bundle>@claude-code-workflows
+```
+
+#### Worked example — a Java + Docker + Kubernetes service with some Python tooling
+
+Paste these nine lines:
+
+```
+/plugin install jvm-languages@claude-code-workflows
+/plugin install python-development@claude-code-workflows
+/plugin install kubernetes-operations@claude-code-workflows
+/plugin install cloud-infrastructure@claude-code-workflows
+/plugin install cicd-automation@claude-code-workflows
+/plugin install comprehensive-review@claude-code-workflows
+/plugin install observability-monitoring@claude-code-workflows
+/plugin install database-design@claude-code-workflows
+/plugin install error-debugging@claude-code-workflows
+```
+
+Line by line — what each one buys and which phases will name it:
+
+| Bundle | Agents it installs | Phases that cite them |
+|---|---|---|
+| `jvm-languages` | `java-pro`, `scala-pro`, `csharp-pro` | Everything under `src/main/java` |
+| `python-development` | `python-pro`, `django-pro`, `fastapi-pro` | The Python tooling / scripts phases |
+| `kubernetes-operations` | `kubernetes-architect` | Phases touching `helm/`, `k8s/`, manifests |
+| `cloud-infrastructure` | `cloud-architect`, `terraform-specialist`, `kubernetes-architect`, `network-engineer`, `service-mesh-expert`, `hybrid-cloud-architect`, `deployment-engineer` | IaC and cluster-topology phases |
+| `cicd-automation` | `deployment-engineer`, `devops-troubleshooter`, `kubernetes-architect`, `terraform-specialist`, `cloud-architect` | `Dockerfile` and pipeline phases |
+| `comprehensive-review` | `code-reviewer`, `architect-review`, `security-auditor` | The final review phase of almost every plan |
+| `observability-monitoring` | `performance-engineer`, `observability-engineer`, `database-optimizer`, `network-engineer` | Metrics / tracing / SLO phases |
+| `database-design` | `sql-pro`, `database-architect` | Schema and query phases |
+| `error-debugging` | `debugger`, `error-detective` | None — you dispatch these by hand when a round breaks |
+
+Four things that save you a reinstall:
+
+- **There is no Docker agent.** Containers are covered by `deployment-engineer` (in `cicd-automation` and `cloud-infrastructure`) and by the container-scanning half of `security-scanning`. A phase whose files are a `Dockerfile` should name `deployment-engineer`.
+- **Agents are duplicated across bundles**, so you rarely need the bundle you first think of. `security-auditor` ships in five (`comprehensive-review`, `security-scanning`, `backend-development`, `full-stack-orchestration`, `security-compliance`); `code-reviewer` in seven. Install the smallest bundle that carries the name and stop.
+- **`developer-essentials` is a trap here.** Despite the name, its only agent is `monorepo-architect` — everything else in it is skills. Install it for the skills, never to satisfy an Owner Agent line.
+- **Minimum viable set:** `comprehensive-review` plus the one language bundle for your stack. That covers the review phase and the implementation phases; everything else is refinement.
+
+Without any of them every phase falls back to `general-purpose`, which the phase template explicitly allows.
 
 ### 4. Optional: CodeGraph
 
@@ -62,6 +105,32 @@ Skills load at session start.
 ---
 
 ## Tutorial: from a plan to five agents
+
+### 0. Where this sits, and what carries the handoff
+
+This is step 2 of five. Nothing is passed between the steps by hand — **the plan folder is the handoff.** Every skill reads and writes the same directory, so "giving the next step the plan" is just naming that folder again.
+
+```
+docs/plans/GH-412/          ← name this folder at every step
+├── issue.specs             written by create-master-plan
+├── master-plan.md          written by create-master-plan   ← input to this plugin
+├── phases/PHASE-NN-*.md    written by decompose-plan
+├── tasks.md                written by decompose-plan, then updated live by every agent
+├── execute-plan.md         written by decompose-plan, pasted by you
+└── handoff.md              scaffolded by decompose-plan, filled by the coordinator at the end
+```
+
+| # | You run | Where | Produces |
+|---|---|---|---|
+| 1 | `/create-master-plan 412` | any conversation | `issue.specs`, `master-plan.md` |
+| 2 | `/decompose-plan docs/plans/GH-412` | same conversation is fine | `phases/`, `tasks.md`, `execute-plan.md`, `handoff.md` |
+| 2.5 | `/plan-review-prompt` → paste output into Codex | any conversation | findings you fold back into the plan |
+| 3 | paste the Coordinator Prompt (below) | **a fresh conversation — mandatory** | the code, plus `tasks.md` and `handoff.md` filled in |
+| 4 | `/plan-implementation-review` → paste output into Codex | any conversation | findings on what actually landed |
+
+Only one of those transitions is load-bearing: **step 3 must start in an empty conversation.** The rest can share one.
+
+Step 2.5 is the cheap review and the one people skip. It reviews the plan *before* anything is built — a wrong phase boundary caught there costs you minutes, the same boundary caught in round 2 costs a whole round plus a confused human. Step 4 is its post-implementation sibling: same folder, but it judges the real `git diff` against what the plan promised. Both live in [`plan-review`](../plan-review/) and neither performs the review itself — they generate a self-contained prompt you hand to a *different* agent, on the theory that the author of a plan is a poor reviewer of it.
 
 ### 1. Decompose
 
@@ -90,7 +159,22 @@ It finishes with a summary: phase count, round count, the largest round, a rough
 
 ### 3. Execute — in a fresh conversation
 
-Open a new conversation and paste the entire **Coordinator Prompt** block from `execute-plan.md`. The coordinator needs a near-empty context window: it holds the whole plan, every phase file, and every agent's report.
+**What "the Coordinator Prompt block" means.** `execute-plan.md` has three parts, and only the middle one is for the machine:
+
+1. A round list at the top — `Round 0`, `Round 1`, … with each phase and its owner agent. **For you**, so you can see the shape before committing to it.
+2. A `## Coordinator Prompt` heading followed by **one fenced code block, roughly 170 lines.** *This is the thing you paste.* It opens with `You are the coordinator for the implementation of "…"` and closes with the "recommended next step" line.
+3. `## Tips for the coordinator` at the bottom — **also for you.** Out-of-band commentary about why the rounds work the way they do. Do not paste it; appending it dilutes the instruction the coordinator is following.
+
+So: open the file, select everything *between* the two ``` fences under `## Coordinator Prompt`, and paste that into a new conversation. Or lift it from the command line:
+
+````bash
+awk '/^## Coordinator Prompt/{f=1;next} f&&/^```/{c++;next} f&&c==1' \
+  docs/plans/GH-412/execute-plan.md
+````
+
+Append `| clip.exe` on WSL, `| pbcopy` on macOS, or `| xclip -sel c` on Linux to skip the scrolling. Paste it as your very first message — nothing before it, no "here's the plan" preamble.
+
+**Why the conversation must be fresh:** the coordinator ends up holding the master plan, every phase file, and every teammate's full report simultaneously. Starting it in a window that already contains your planning discussion means it hits compaction mid-run — and a coordinator that has forgotten round 1's deviations will happily dispatch round 2 on top of them.
 
 The coordinator then loops:
 
@@ -129,6 +213,6 @@ Then [`plan-review`](../plan-review/) for a second opinion on what actually land
 
 ## Limits
 
-- **Four owner agents are the workflow author's own, not public.** `dotnet-senior-developer`, `blazor-frontend-developer`, `delphi-senior-developer` and `react-senior-developer` do not come from `wshobson/agents` and are not in this package. Phases naming them fall back to `general-purpose`. Write your own with those names if you work in those stacks — the matcher scores against the agent description, so name the stack and domain explicitly in it.
+- **Four owner agents are the workflow author's own, not public.** `dotnet-senior-developer`, `blazor-frontend-developer`, `delphi-senior-developer` and `react-senior-developer` do not come from `wshobson/agents` and are not in this package. Phases naming them fall back to `general-purpose`. Write your own with those names if you work in those stacks — the matcher scores against the agent description, so name the stack and domain explicitly in it. The Java, Python and Kubernetes owner agents are the exception: `java-pro`, `python-pro` and `kubernetes-architect` are real public agents, so those phases resolve out of the box once the bundles above are installed.
 - **It does not execute the plan.** Execution happens in a separate conversation driven by `execute-plan.md`.
 - **It never edits the master plan.** The input is preserved as-is.
