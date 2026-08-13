@@ -1,0 +1,5 @@
+# The skill files in this repository are byte-for-byte copies of their author's
+# originals, and that is the entire point of the packaging. Some of them use CRLF.
+# Git's default eol normalisation would rewrite those bytes on commit, so a fresh
+# clone would no longer match the source it claims to reproduce. Disable it.
+* -text

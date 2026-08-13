@@ -1,0 +1,9 @@
+{
+  "name": "create-master-plan",
+  "version": "0.1.0",
+  "description": "Step 1 of a plan-first multi-agent workflow, packaged verbatim from its author's own files: pull a ticket with its linked issues, Confluence pages and attachments, scan the repo's docs/ exhaustively, detect the tech stack, interview you over a coverage matrix, and write issue.specs plus master-plan.md.",
+  "author": {
+    "name": "necofx",
+    "email": "admin@necofx.com"
+  }
+}

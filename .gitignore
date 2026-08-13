@@ -1,0 +1,10 @@
+# Test sandbox: regenerated from scratch by tests/run-tests.sh on every run.
+sandbox/
+plugins/*/sandbox/
+
+# Local-only notes, never published.
+*.local.md
+
+# OS / editor noise
+.DS_Store
+*.swp

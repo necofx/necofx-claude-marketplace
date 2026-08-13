@@ -1,0 +1,9 @@
+{
+  "name": "decompose-plan",
+  "version": "0.1.0",
+  "description": "Step 2 of a plan-first multi-agent workflow, packaged verbatim from its author's own files: turn a master plan into atomic phases grouped into parallel rounds, file-conflict checked and skill-matched, emitting phases/, tasks.md, execute-plan.md and handoff.md for multi-agent execution.",
+  "author": {
+    "name": "necofx",
+    "email": "admin@necofx.com"
+  }
+}

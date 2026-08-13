@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan-First Multi-Agent Workflow</title>
+
+<style>
+  :root {
+    --bg: #fbfbfa; --surface: #ffffff; --surface-2: #f4f4f2;
+    --border: #e2e1dd; --border-strong: #cbc9c3;
+    --text: #23221f; --text-dim: #6b6963;
+    --accent: #9a5b2e; --accent-soft: #f5ece4;
+    --ok: #3f6b45; --warn: #8a6320;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17181a; --surface: #1e1f22; --surface-2: #24262a;
+      --border: #33353a; --border-strong: #474a51;
+      --text: #e6e5e1; --text-dim: #9c9a94;
+      --accent: #d99a63; --accent-soft: #2b241d;
+      --ok: #82b78c; --warn: #d4ab6a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17181a; --surface: #1e1f22; --surface-2: #24262a;
+    --border: #33353a; --border-strong: #474a51;
+    --text: #e6e5e1; --text-dim: #9c9a94;
+    --accent: #d99a63; --accent-soft: #2b241d;
+    --ok: #82b78c; --warn: #d4ab6a;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--sans); font-size: 15.5px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 58rem; margin: 0 auto; padding: 2.5rem 1.5rem 5rem; }
+
+  header.masthead { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+  .eyebrow { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.12em;
+             text-transform: uppercase; color: var(--accent); margin: 0 0 0.6rem; }
+  h1 { font-size: clamp(1.7rem, 4.5vw, 2.3rem); line-height: 1.15; margin: 0 0 0.7rem; letter-spacing: -0.02em; }
+  .lede { font-size: 1.02rem; color: var(--text-dim); margin: 0; max-width: 44rem; }
+
+  h2 { font-size: 1.3rem; margin: 2.75rem 0 0.9rem; padding-top: 1.25rem;
+       border-top: 1px solid var(--border); letter-spacing: -0.01em; }
+  h2:first-of-type { border-top: 0; padding-top: 0; }
+  h3 { font-size: 1rem; margin: 1.6rem 0 0.5rem; }
+  p { margin: 0 0 0.85rem; }
+  a { color: var(--accent); text-underline-offset: 2px; }
+
+  code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2);
+         border: 1px solid var(--border); border-radius: 4px; padding: 0.08em 0.32em; }
+  pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
+        padding: 0.85rem 1rem; overflow-x: auto; font-family: var(--mono);
+        font-size: 0.8rem; line-height: 1.55; margin: 0 0 1rem; }
+  pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+  .toc { background: var(--surface); border: 1px solid var(--border);
+         border-radius: 10px; padding: 1rem 1.4rem; margin-bottom: 0.5rem; }
+  .toc ol { margin: 0; padding-left: 1.2rem; columns: 2; column-gap: 2rem; font-size: 0.92rem; }
+  @media (max-width: 40rem) { .toc ol { columns: 1; } }
+  .toc li { margin-bottom: 0.2rem; break-inside: avoid; }
+
+  .tablewrap { overflow-x: auto; margin: 0 0 1.15rem; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase;
+       color: var(--text-dim); border-bottom: 1px solid var(--border-strong); white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: 0; }
+
+  .flow { margin: 0 0 1.5rem; }
+  .flow-step { display: grid; grid-template-columns: 2.1rem 1fr; gap: 0.9rem;
+               align-items: start; padding: 0.8rem 1rem;
+               background: var(--surface); border: 1px solid var(--border); }
+  .flow-step:first-child { border-radius: 10px 10px 0 0; }
+  .flow-step:last-child { border-radius: 0 0 10px 10px; }
+  .flow-step + .flow-step { border-top: 0; }
+  .flow-num { font-family: var(--mono); font-size: 0.78rem; font-weight: 700;
+              width: 2.1rem; height: 1.6rem; display: grid; place-items: center;
+              background: var(--accent-soft); color: var(--accent);
+              border: 1px solid var(--border); border-radius: 5px; }
+  .flow-body strong { display: block; }
+  .flow-body .cmd { font-family: var(--mono); font-size: 0.8rem; color: var(--accent); }
+  .flow-body .out { font-size: 0.85rem; color: var(--text-dim); margin: 0.15rem 0 0; }
+
+  .note, .warn-box {
+    border-left: 3px solid var(--accent); background: var(--surface);
+    padding: 0.75rem 1rem; margin: 0 0 1.15rem; border-radius: 0 8px 8px 0; font-size: 0.9rem;
+  }
+  .warn-box { border-left-color: var(--warn); }
+  .note p:last-child, .warn-box p:last-child { margin-bottom: 0; }
+  .label { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.09em;
+           text-transform: uppercase; display: block; margin-bottom: 0.25rem; color: var(--accent); }
+  .warn-box .label { color: var(--warn); }
+
+  ul, ol { margin: 0 0 1.15rem; padding-left: 1.3rem; }
+  li { margin-bottom: 0.3rem; }
+
+  .pill { display: inline-block; font-family: var(--mono); font-size: 0.68rem;
+          padding: 0.05rem 0.4rem; border-radius: 999px;
+          border: 1px solid var(--border-strong); color: var(--text-dim); white-space: nowrap; }
+  .pill.req { border-color: var(--ok); color: var(--ok); }
+
+  footer { margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid var(--border);
+           font-size: 0.83rem; color: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Claude Code · Workflow Manual</p>
+  <h1>Plan-First Multi-Agent Workflow</h1>
+  <p class="lede">
+    Ticket → researched plan → atomic phases in parallel rounds → one agent per phase →
+    reviewable hand-off. Every step's output is a file, so no step depends on a
+    conversation still being open. Stack-agnostic.
+  </p>
+</header>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#glance">The five steps</a></li>
+    <li><a href="#step1">1 · Create the master plan</a></li>
+    <li><a href="#step2">2 · Decompose into rounds</a></li>
+    <li><a href="#step3">3 · Execute</a></li>
+    <li><a href="#step45">4–5 · Review, fix, close out</a></li>
+    <li><a href="#artifacts">Generated files</a></li>
+    <li><a href="#parts">Skills, agents, MCP</a></li>
+    <li><a href="#codegraph">Token economy: CodeGraph</a></li>
+    <li><a href="#setup">Setup</a></li>
+    <li><a href="#failure">When it goes wrong</a></li>
+    <li><a href="#why">Why it's shaped this way</a></li>
+    <li><a href="#extend">Extending it</a></li>
+  </ol>
+</nav>
+
+<h2 id="glance">The five steps</h2>
+
+<div class="flow">
+  <div class="flow-step"><span class="flow-num">1</span><div class="flow-body">
+    <strong>Create the master plan</strong>
+    <span class="cmd">/create-master-plan ACME-1234</span>
+    <p class="out">Fetches Jira + Confluence + local docs, interviews you on the gaps →
+      <code>issue.specs</code>, <code>master-plan.md</code></p>
+  </div></div>
+  <div class="flow-step"><span class="flow-num">2</span><div class="flow-body">
+    <strong>Decompose into rounds</strong>
+    <span class="cmd">/decompose-plan docs/plans/ACME-1234</span>
+    <p class="out">Atomic phases, grouped into parallel rounds, file-conflict checked →
+      <code>phases/</code>, <code>tasks.md</code>, <code>execute-plan.md</code>, <code>handoff.md</code></p>
+  </div></div>
+  <div class="flow-step"><span class="flow-num">3</span><div class="flow-body">
+    <strong>Execute</strong>
+    <span class="cmd">paste execute-plan.md into a fresh conversation</span>
+    <p class="out">Coordinator dispatches one agent per phase, whole round at once,
+      advances only when the round is green</p>
+  </div></div>
+  <div class="flow-step"><span class="flow-num">4</span><div class="flow-body">
+    <strong>Review and fix</strong>
+    <span class="cmd">/code-review</span>
+    <p class="out">Findings on the branch diff → fix → review again</p>
+  </div></div>
+  <div class="flow-step"><span class="flow-num">5</span><div class="flow-body">
+    <strong>Close out the documents</strong>
+    <span class="cmd">—</span>
+    <p class="out">Finish <code>tasks.md</code> and <code>handoff.md</code>; fold anything
+      durable into the project's rules</p>
+  </div></div>
+</div>
+
+<p>Steps 1, 2 and 3 each go in their own conversation — step 3's coordinator needs a
+  near-empty context window, and step 1 ends with a large research payload in yours.</p>
+
+<h2 id="step1">1 · Create the master plan</h2>
+
+<pre><code>/create-master-plan ACME-1234</code></pre>
+
+<p>Takes a bare ticket key or a full Atlassian URL. It does four things:</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Phase of the step</th><th>What happens</th></tr></thead>
+  <tbody>
+    <tr><td>Fetch</td><td>The issue with all fields, comments and attachments; up to <strong>5 linked issues</strong> (parent epic → blocks → relates-to → sub-tasks) and <strong>3 Confluence pages</strong> (URLs in the ticket first, then a CQL top-up).</td></tr>
+    <tr><td>Scan</td><td><code>docs/**/*.md</code> <em>exhaustively</em> — no directory excluded, no cap — for the ticket key, component names and distinctive nouns. Long output is expected; it surfaces the internal doc nobody remembered.</td></tr>
+    <tr><td>Detect stack</td><td>Ticket text → root markers (<code>*.sln</code>, <code>package.json</code>, <code>*.dproj</code>…) → ask. Mixed stacks get a layer-to-stack map. This drives every build command, test framework and rule citation downstream.</td></tr>
+    <tr><td>Interview</td><td>Structured questions over a coverage matrix: goal, constraints, scope boundary, implementation, UI/UX, edge cases, tradeoffs, acceptance criteria, testing, validation gates. Skips anything already answered; grounds each question in the code first.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="note">
+  <span class="label">The interview is the step that decides quality</span>
+  <p>Everything downstream is derived from it. A vague requirement here becomes five
+    agents confidently building the wrong thing in parallel at step 3. Q&amp;A is appended
+    to <code>issue.specs</code> under <code>## Interview Notes</code>, so a later run sees
+    what was already settled.</p>
+</div>
+
+<p>Stops at <code>master-plan.md</code>. Never decomposes, never writes to Jira.</p>
+
+<h2 id="step2">2 · Decompose into rounds</h2>
+
+<pre><code>/decompose-plan docs/plans/ACME-1234</code></pre>
+
+<p><strong>Phase</strong> — one atomic unit for one agent. Single-focus (an "and" in the
+  goal means split it), independently verifiable, 30 min – 3 h, dependencies named not
+  implied.<br>
+  <strong>Round</strong> — a set of phases that run <em>in parallel</em>. Rounds run
+  sequentially. Round 0 is usually one foundation phase, round 1 the wide fan-out, the
+  last round integration and verification.</p>
+
+<h3>File-conflict matrix</h3>
+<p>What makes parallelism safe. For every multi-phase round, it lists each phase's
+  create/modify files and verifies no two touch the same one. Unavoidable overlaps get an
+  explicit coordination rule in <code>tasks.md</code>: which phase edits first, how the
+  second rebases.</p>
+
+<h3>Skill matching</h3>
+<p>Phase files list the skills their agent must invoke. Rather than guessing names, the
+  skill inventories what actually exists — runtime-active, then
+  <code>.claude/skills/**/SKILL.md</code>, then user-global — tags each with stack/domain/verb
+  hints, and scores:</p>
+<pre><code>score = 3x(stack) + 2x(domain) + 1x(verb) + 2 if runtime-active
+        - 5 if skill and phase have conflicting stacks
+recommend at score >= 3, cap 4 per phase</code></pre>
+<p>No match means only the always-on skills plus an explicit note — never a padded list.
+  A missing specialist the phase obviously needs is recorded in <code>tasks.md</code> so
+  you can install it or accept the gap.</p>
+
+<h2 id="step3">3 · Execute</h2>
+
+<p>Open a <strong>fresh conversation</strong>, paste the Coordinator Prompt from
+  <code>execute-plan.md</code>. The coordinator then loops:</p>
+
+<ol>
+  <li>Read master plan, <code>tasks.md</code>, every phase file — know the whole shape first.</li>
+  <li>Dispatch every ready phase in the round <strong>in a single message</strong>, one
+    <code>Agent</code> call each, so they genuinely run concurrently.</li>
+  <li>Wait for the whole round to reach <code>completed</code>.</li>
+  <li>Run the full build + test gate to confirm the phases integrate; write a round
+    summary into <code>tasks.md</code>.</li>
+  <li>Surface a batched commit command and advance without waiting for you to run it.</li>
+</ol>
+
+<p>Each agent works only from its phase file, and may edit only its own row in
+  <code>tasks.md</code>.</p>
+
+<h3>TDD shape inside a phase</h3>
+<p>Locate the surface area (one
+  <a href="#codegraph"><code>codegraph explore</code></a> call on an indexed repo, a search
+  loop otherwise) → one failing test → confirm it fails → minimum implementation → confirm
+  it passes → edge cases one at a time → full build and test gate → <strong>TDD
+  proof</strong>: deliberately break the implementation, confirm the tests that should
+  fail do fail, restore.</p>
+<p>That last step is what separates tests that verify behaviour from tests that merely
+  execute code.</p>
+
+<div class="warn-box">
+  <span class="label">Phases never commit</span>
+  <p>Each leaves a clean, tested tree and writes <code>(pending batch)</code>. The
+    coordinator batches commits at end-of-round. Five agents finishing unpredictably would
+    otherwise produce interleaved partial commits nobody can review — and per-phase
+    approvals would stall the run constantly.</p>
+</div>
+
+<h2 id="step45">4–5 · Review, fix, close out</h2>
+
+<pre><code>/code-review</code></pre>
+
+<p>Reviews the branch diff. Takes an effort level (low/medium = fewer, higher-confidence
+  findings; high+ = broader, includes uncertain ones). <code>--fix</code> applies findings;
+  <code>--comment</code> posts them inline on the PR. For a second opinion:</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Agent</th><th>Angle</th></tr></thead>
+  <tbody>
+    <tr><td><code>code-reviewer</code></td><td>Quality, security, maintainability</td></tr>
+    <tr><td><code>architect-reviewer</code></td><td>Layering, SOLID, dependency direction, does it make future change harder</td></tr>
+    <tr><td><code>security-auditor</code></td><td>OWASP, auth flows, input validation, secrets</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="note">
+  <span class="label">Findings are claims, not verdicts</span>
+  <p>Some are wrong. Verify each against the code before changing anything — accepting a
+    wrong finding costs more than missing a marginal one.</p>
+</div>
+
+<p>Then close the loop: real commit SHAs and the final summary in <code>tasks.md</code>;
+  every section of <code>handoff.md</code> filled — especially <strong>deviations from the
+  plan</strong>, which is where reviewers spend their attention and where unexamined
+  assumptions hide; and anything durable folded into <code>.claude/rules/</code> rather
+  than left in a plan folder nobody reopens.</p>
+
+<h2 id="artifacts">Generated files</h2>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>File</th><th>By</th><th>Contains</th></tr></thead>
+  <tbody>
+    <tr><td><code>issue.specs</code></td><td>1</td><td>Description, AC, comments, linked issues, Confluence, attachments, related local docs, context gaps — plus interview notes.</td></tr>
+    <tr><td><code>master-plan.md</code></td><td>1</td><td>Context, tech stack, pre-flight checklist, why, out of scope, technical requirements by layer, implementation outline, test config, validation gates, AC.</td></tr>
+    <tr><td><code>attachments/</code></td><td>1</td><td>Downloaded Jira attachments. Failures are recorded in Context Gaps, never abort the run.</td></tr>
+    <tr><td><code>phases/PHASE-NN-*.md</code></td><td>2</td><td>Goal, architecture, stack, exhaustive create/modify list, dependencies, owner agent, risk/effort, skills, documents to read, atomic steps, verification, notes downstream.</td></tr>
+    <tr><td><code>tasks.md</code></td><td>2 + everyone</td><td>Single source of truth for status: phase table, rounds graph, conflict matrix, update protocol, per-phase progress, blockers, decisions, final summary.</td></tr>
+    <tr><td><code>execute-plan.md</code></td><td>2</td><td>Round list + the coordinator prompt you paste.</td></tr>
+    <tr><td><code>handoff.md</code></td><td>2, filled at 5</td><td>What shipped, reading order, files touched, deviations, TODOs, how to verify, review focus.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2 id="parts">Skills, agents, MCP</h2>
+
+<h3>Shipped in this package</h3>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Skill</th><th>Role</th></tr></thead>
+  <tbody>
+    <tr><td><code>create-master-plan</code></td><td>Ticket → researched plan. 4 references: interview protocol, issue.specs template, master-plan template, tech-stack profiles.</td></tr>
+    <tr><td><code>decompose-plan</code></td><td>Plan → phases, rounds, orchestrator. 6 references: master-plan format, phase / tasks / execute-plan / handoff templates, skill-matching heuristics, tech-stack profiles.</td></tr>
+  </tbody>
+</table>
+</div>
+<p><code>tech-stack-profiles.md</code> is duplicated in both skills so each stays
+  self-contained. Edit one, edit the other.</p>
+
+<h3>Required, not shipped</h3>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Dependency</th><th>Used for</th></tr></thead>
+  <tbody>
+    <tr><td><code>superpowers</code> plugin</td><td><code>writing-plans</code> (plan + phase shape), <code>subagent-driven-development</code> (dispatch), <code>test-driven-development</code>, <code>verification-before-completion</code> (the done gate), <code>dispatching-parallel-agents</code></td></tr>
+    <tr><td><code>/code-review</code></td><td>Step 4 <span class="pill req">built in</span></td></tr>
+    <tr><td><code>atlassian</code> MCP</td><td>Step 1's fetch. Skippable if you plan from a plain description instead.</td></tr>
+  </tbody>
+</table>
+</div>
+<p>Without superpowers both skills still run — they fall back to their own templates and
+  say so — but you lose the plan-shaping discipline and the gate that stops an agent
+  claiming a phase is done when it isn't.</p>
+
+<h3>Agents</h3>
+<p>Every phase names an <strong>owner agent</strong>, used as the coordinator's
+  <code>subagent_type</code>; <code>general-purpose</code> is the fallback.</p>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Agent</th><th>For</th></tr></thead>
+  <tbody>
+    <tr><td><code>dotnet-senior-developer</code>, <code>blazor-frontend-developer</code>, <code>react-senior-developer</code>, <code>delphi-senior-developer</code>, <code>python-pro</code>, <code>javascript-pro</code></td><td>Stack implementation phases</td></tr>
+    <tr><td><code>sql-pro</code>, <code>database-optimizer</code></td><td>Schema design; query and index tuning</td></tr>
+    <tr><td><code>code-reviewer</code>, <code>architect-reviewer</code>, <code>security-auditor</code></td><td>Review phases and step 4</td></tr>
+    <tr><td><code>performance-engineer</code>, <code>debugger</code>, <code>error-detective</code>, <code>devops-troubleshooter</code></td><td>Profiling, diagnosis, log forensics, production issues</td></tr>
+    <tr><td><code>backend-architect</code>, <code>legacy-modernizer</code>, <code>deployment-engineer</code>, <code>ui-ux-designer</code></td><td>Boundaries, modernisation, CI/CD, design</td></tr>
+    <tr><td><code>technical-researcher</code>, <code>search-specialist</code>, <code>context-manager</code></td><td>Research phases; long multi-agent runs</td></tr>
+  </tbody>
+</table>
+</div>
+<div class="note">
+  <span class="label">Tune them</span>
+  <p>A generic agent gives generic output. Fill the <code>{{APP_n_*}}</code> table in
+    <code>react-senior-developer.md</code> before using it, and delete the agents you'll
+    never dispatch.</p>
+</div>
+
+<h3>MCP servers</h3>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Server</th><th>For</th><th></th></tr></thead>
+  <tbody>
+    <tr><td><code>atlassian</code></td><td>Jira, Confluence, attachments</td><td><span class="pill req">step 1</span></td></tr>
+    <tr><td><code>codegraph</code></td><td>Code navigation in one call — <a href="#codegraph">see below</a></td><td><span class="pill">strongly recommended</span></td></tr>
+    <tr><td><code>serena</code></td><td>Semantic code search</td><td><span class="pill">optional</span></td></tr>
+    <tr><td><code>sequential-thinking</code></td><td>Structured reasoning on decomposition</td><td><span class="pill">optional</span></td></tr>
+    <tr><td><code>context7</code></td><td>Library documentation</td><td><span class="pill">optional</span></td></tr>
+    <tr><td><code>chrome-devtools</code> / <code>playwright</code></td><td>Browser verification of UI phases</td><td><span class="pill">optional</span></td></tr>
+  </tbody>
+</table>
+</div>
+<p>The skills never hardcode MCP tool-name prefixes — they name canonical operations
+  (<code>getJiraIssue</code>, <code>getConfluencePage</code>) and resolve them at runtime.</p>
+
+<h2 id="codegraph">Token economy: CodeGraph</h2>
+
+<p>Every agent spends its first tokens rediscovering the codebase: grep a symbol, get a
+  file list, read those files whole to find a few signatures, repeat per phase. The
+  answer is a few hundred bytes; the cost is hundreds of kilobytes.</p>
+
+<p><a href="https://www.npmjs.com/package/@colbymchenry/codegraph">CodeGraph</a> keeps a
+  SQLite graph of every symbol, edge and file, so one call returns the relevant symbols'
+  <strong>verbatim line-numbered source</strong>, the <strong>call paths</strong> between
+  them, and a <strong>blast radius</strong> of what depends on them. Sub-millisecond
+  reads; the index lags writes by about a second.</p>
+
+<p>Resolving one method on a 7,889-file C# repo — where it's declared, who implements it,
+  who calls it:</p>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Approach</th><th>Into context</th></tr></thead>
+  <tbody>
+    <tr><td><code>codegraph explore "&lt;symbol&gt;"</code> — one call</td><td><strong>25 KB</strong></td></tr>
+    <tr><td><code>grep -rl</code> then reading the 9 matched files</td><td>649 KB</td></tr>
+  </tbody>
+</table>
+</div>
+<p>~26× less, for a strictly better answer — grep-and-read gives no call paths, no
+  dependents, and cannot follow a call through an interface, a DI container, a callback or
+  a React re-render. That's a correctness argument too: a phase that missed a caller
+  because the call went through an interface produces a green build and a broken runtime.
+  One symbol, one repo — indicative, not a benchmark.</p>
+
+<h3>Where the workflow uses it</h3>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Step</th><th>Use</th></tr></thead>
+  <tbody>
+    <tr><td>1 · interview</td><td><code>codegraph_explore</code> to ground questions before asking</td></tr>
+    <tr><td>2 · dependency graph</td><td><code>impact</code> / <code>callers</code> to check the plan's claims against the code</td></tr>
+    <tr><td>2 · conflict matrix</td><td><code>explore</code> to resolve each phase's real Modify list — the registration file the plan forgot is the usual conflict source</td></tr>
+    <tr><td>3 · phase step N.1</td><td><code>explore</code> once per phase instead of the search loop — the largest repeated cost in a run</td></tr>
+    <tr><td>3 · scoped tests</td><td><code>affected &lt;changed-files&gt;</code> to find the tests a change reaches</td></tr>
+  </tbody>
+</table>
+</div>
+<p>All of it is conditional on a <code>.codegraph/</code> directory existing. Nothing
+  breaks on an unindexed repo — it just costs more.</p>
+
+<h3>Commands</h3>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Command</th><th>Returns</th></tr></thead>
+  <tbody>
+    <tr><td><code>explore "&lt;symbols or question&gt;"</code></td><td>The main one: source + call paths + blast radius, one shot</td></tr>
+    <tr><td><code>node &lt;symbol|file&gt;</code></td><td>One symbol's source + caller/callee trail, or a file with line numbers and dependents</td></tr>
+    <tr><td><code>callers</code> / <code>callees &lt;symbol&gt;</code></td><td>Who calls it / what it calls. Run <code>callers</code> before changing any signature</td></tr>
+    <tr><td><code>impact &lt;symbol&gt;</code></td><td>What a change reaches, to a given depth</td></tr>
+    <tr><td><code>affected &lt;files…&gt;</code></td><td>Test files a change reaches. <code>--quiet</code> for bare paths</td></tr>
+    <tr><td><code>query &lt;search&gt;</code></td><td>Symbol search — cheapest way to confirm a name exists</td></tr>
+    <tr><td><code>status</code> / <code>sync</code> / <code>files</code></td><td>Index stats, force a sync, file structure from the index</td></tr>
+  </tbody>
+</table>
+</div>
+<p><code>codegraph_explore</code> and <code>codegraph_node</code> are the MCP equivalents,
+  identical output.</p>
+
+<div class="warn-box">
+  <span class="label">Two boundaries</span>
+  <p><strong>It indexes code, not prose</strong> — step 1's <code>docs/**/*.md</code> scan
+    stays a text search.<br>
+    <strong>Indexing is the user's decision</strong> — the skills never run
+    <code>init</code> themselves. It builds a database of your full source (410 MB on the
+    repo above) and ships telemetry enabled by default.</p>
+</div>
+
+<h2 id="setup">Setup</h2>
+
+<h3>1 · Claude Code</h3>
+<pre><code>npm install -g @anthropic-ai/claude-code</code></pre>
+
+<h3>2 · superpowers plugin <span class="pill req">required</span></h3>
+<pre><code>/plugin
+# confirm these resolve in a session:
+#   superpowers:writing-plans, :subagent-driven-development,
+#   :test-driven-development, :verification-before-completion,
+#   :dispatching-parallel-agents</code></pre>
+
+<h3>3 · Atlassian MCP <span class="pill req">step 1</span></h3>
+<pre><code>claude mcp add --transport http atlassian https://mcp.atlassian.com/v1/mcp
+claude mcp list          # expect: atlassian - Connected</code></pre>
+<p>First use opens a browser for OAuth; you need read access to the project and the
+  Confluence spaces your tickets cite. Set <code>{{JIRA_CLOUD_ID}}</code> to your site
+  host — the <code>your-org.atlassian.net</code> part of a ticket URL.</p>
+<p><strong>No Jira?</strong> Hand-write <code>issue.specs</code> from
+  <code>references/issue-specs-template.md</code> and start at
+  <code>/decompose-plan</code>. Steps 2–5 have no tracker dependency.</p>
+
+<h3>4 · Optional MCP servers</h3>
+<pre><code>claude mcp add serena -- uvx --from git+https://github.com/oraios/serena.git \
+    serena start-mcp-server --context ide-assistant
+claude mcp add sequential-thinking -- npx @modelcontextprotocol/server-sequential-thinking
+claude mcp add context7 -- npx @upstash/context7-mcp</code></pre>
+
+<h3>5 · CodeGraph <span class="pill">strongly recommended</span></h3>
+<pre><code># A real global install — the MCP entry invokes the bare `codegraph` command,
+# so an npx-only setup silently fails to start the server.
+npm install -g @colbymchenry/codegraph
+
+# -y is required: the installer is interactive and otherwise hangs.
+# Agent ids: claude, cursor, codex, opencode, hermes, gemini, antigravity, kiro
+# — it is `claude`, NOT `claude-code`.
+codegraph install -y -t claude -l global
+
+# Telemetry ships ENABLED. Turn it off before indexing proprietary code.
+codegraph telemetry off
+
+cd /path/to/your/repo
+codegraph init && codegraph status</code></pre>
+<p>Initial index ≈2.5 min for 7,900 files; a few hundred MB at
+  <code>.codegraph/codegraph.db</code>, which self-gitignores. Auto-syncs afterwards;
+  <code>codegraph sync .</code> forces it. Keep the <em>CodeGraph</em> block at the top of
+  <code>CLAUDE.md</code> — it's what points agents at the graph before they grep; delete it
+  in repos you don't index. Note <code>install</code> also writes that block into your
+  <strong>global</strong> <code>~/.claude/CLAUDE.md</code>. Remove everything with
+  <code>codegraph uninstall</code> + <code>uninit &lt;path&gt;</code>.</p>
+
+<h3>6 · Install the template</h3>
+<p>Copy <code>template/.claude/</code> into your repo root (merging with any existing
+  <code>.claude/</code>), and <code>template/CLAUDE.md</code> to the root — or merge its
+  <em>Planning workflow</em> and <em>Coding rules</em> sections into the one you have.
+  Delete the agents you won't use.</p>
+<div class="warn-box">
+  <span class="label">Skill discovery is strict</span>
+  <p>A project skill is found only at <code>.claude/skills/&lt;name&gt;/SKILL.md</code>,
+    exactly one level deep — a grouping subfolder makes it silently invisible. On Windows
+    also check <code>core.symlinks</code>: symlinked skill directories otherwise land as
+    plain text files and the skill vanishes with a clean <code>git status</code>.</p>
+</div>
+
+<h3>7 · Replace the placeholders</h3>
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Token</th><th>Meaning</th><th>Example</th></tr></thead>
+  <tbody>
+    <tr><td><code>{{JIRA_CLOUD_ID}}</code></td><td>Atlassian site host</td><td><code>acme.atlassian.net</code></td></tr>
+    <tr><td><code>{{TICKET_PREFIX}}</code></td><td>Jira project key prefix</td><td><code>ACME</code></td></tr>
+    <tr><td><code>{{PLANS_DIR}}</code></td><td>Where plan folders go</td><td><code>docs/plans</code></td></tr>
+  </tbody>
+</table>
+</div>
+<p>Those three are read by the workflow; the rest are documentation for your team — see
+  <code>PLACEHOLDERS.md</code>.</p>
+<pre><code>grep -rn "{{" .claude CLAUDE.md     # nothing required should remain</code></pre>
+
+<h3>8 · Decide the git policy</h3>
+<p>Shipped default: <code>settings.json</code> denies every git write and
+  <code>rules/git-workflow.md</code> documents why — the coordinator emits commit commands
+  as text for a human to run. To let agents commit, change <strong>both</strong> files: the
+  rule states intent, the deny list is the actual gate.</p>
+
+<h3>9 · Write your rule files</h3>
+<p>The highest-leverage remaining work, and the one thing nobody can ship for you. Phase
+  files cite <code>.claude/rules/*.md</code> by path; with none, every agent falls back to
+  generic best practice and your conventions erode one phase at a time. Start with the
+  three that catch the most review comments — usually code style, testing, error handling.</p>
+
+<h3>10 · Smoke-test</h3>
+<p>Run all five steps on a small, well-understood ticket. You're checking plumbing, not
+  ambition: the fetch connects, the interview asks sensible questions, the phases are ones
+  you'd have written yourself, the coordinator dispatches in parallel.</p>
+
+<h2 id="failure">When it goes wrong</h2>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Symptom</th><th>Cause and fix</th></tr></thead>
+  <tbody>
+    <tr><td>Skill isn't found</td><td>Must be at <code>.claude/skills/&lt;name&gt;/SKILL.md</code>, exactly one level deep. Check for a grouping subfolder; on Windows check <code>core.symlinks</code>.</td></tr>
+    <tr><td>Jira fetch fails</td><td><code>claude mcp list</code>, re-authenticate. Confirm <code>{{JIRA_CLOUD_ID}}</code> is the bare host — no <code>https://</code>, no path.</td></tr>
+    <tr><td>Vague or overlapping phases</td><td>An underspecified master plan. Don't patch the phases — sharpen the plan. Inferred sections are flagged in <code>tasks.md § Coordination Notes</code>; read those flags.</td></tr>
+    <tr><td>Same-round file conflict</td><td>The matrix missed it. Move one phase to the next round, or add an explicit coordination rule naming who edits first.</td></tr>
+    <tr><td>Coordinator dispatches sequentially</td><td>All phases in a round must go in <em>one</em> message with one <code>Agent</code> call each. Sequential dispatch forfeits the entire point of rounds.</td></tr>
+    <tr><td>Agent claims done, build is broken</td><td>The verification gate was skipped. Check the phase's Verification section names your real commands and that <code>superpowers:verification-before-completion</code> resolves.</td></tr>
+    <tr><td>A phase goes silent</td><td>Ask it to summarise and update <code>tasks.md</code>. If genuinely blocked it should set <code>Status = blocked</code> and fill Active blockers; the coordinator then re-dispatches, resolves, or drops it.</td></tr>
+    <tr><td>Agents ignore your conventions</td><td>No rule files, or the phase files don't cite them. Check a phase's <em>Documents to Read</em> — an empty list means there was nothing to cite.</td></tr>
+    <tr><td>Agents still grep instead of using CodeGraph</td><td>No <code>.codegraph/</code> directory (every CodeGraph instruction is conditional on it), the CodeGraph block is missing from <code>CLAUDE.md</code>, or the server isn't running.</td></tr>
+    <tr><td><code>codegraph</code> MCP won't start</td><td>Almost always an <code>npx</code>-only setup — it must be on <code>PATH</code>: <code>npm i -g @colbymchenry/codegraph</code>. Confirm the agent id was <code>claude</code>, not <code>claude-code</code>.</td></tr>
+    <tr><td>CodeGraph returns stale symbols</td><td>The watcher lags ~1s. <code>codegraph sync .</code>; <code>codegraph unlock</code> clears a stale lock.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2 id="why">Why it's shaped this way</h2>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Decision</th><th>Reason</th></tr></thead>
+  <tbody>
+    <tr><td>Rounds, not a dependency queue</td><td>A queue is faster but leaves an arbitrary subset of phases in flight against a moving codebase. Rounds buy a barrier where the full suite runs before anything else starts — without it, a round-1 mistake is found by five round-2 agents at once.</td></tr>
+    <tr><td>Commits batched, never per-phase</td><td>Parallel agents produce interleaved partial commits nobody can review, and per-phase approval stalls the run on every finish.</td></tr>
+    <tr><td>Rules cited, never copied</td><td>A copied rule drifts from the real one within weeks — and then agents follow the stale copy with total confidence.</td></tr>
+    <tr><td>The interview isn't optional</td><td>Jira holds what was written down. The real constraint, the rejected alternative, the reason it matters — none of that is in the tracker. Skipping it yields a plan that is fluent, complete-looking and subtly wrong.</td></tr>
+    <tr><td>One conversation per step</td><td>Step 1 ends with a large research payload in context; step 3's coordinator needs room for the whole plan plus every agent's reports. The artifacts on disk make the split free.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2 id="extend">Extending it</h2>
+
+<ul>
+  <li><strong>New tech stack</strong> — add a profile to <code>tech-stack-profiles.md</code>
+    in <em>both</em> skills (root markers, build/test/scoped-test commands, test framework,
+    assertion and mocking libs, conventions location, commit convention). Add its keywords
+    to <code>skill-matching-heuristics.md</code>. No <code>SKILL.md</code> edit needed.</li>
+  <li><strong>New specialist agent</strong> — drop it in <code>.claude/agents/</code> with
+    frontmatter. The description is what the matcher scores against, so name the stack and
+    domain explicitly.</li>
+  <li><strong>Different tracker</strong> — only step 1's fetch is Jira-shaped. Replace
+    steps 2–4 of <code>create-master-plan/SKILL.md</code> and keep writing the same
+    <code>issue.specs</code>; everything downstream reads that file, not the tracker.</li>
+</ul>
+
+<footer>
+  <p>Distributed with the <code>template/</code> folder in this package. The
+    <code>superpowers</code> plugin, the built-in <code>/code-review</code> skill, CodeGraph
+    (<code>@colbymchenry/codegraph</code>, MIT) and the other MCP servers are separate
+    dependencies with their own licences, not included here. The bundled agents are adapted
+    from public Claude Code subagent collections with project-specific content removed.</p>
+</footer>
+
+</div>
+</body>
+</html>
