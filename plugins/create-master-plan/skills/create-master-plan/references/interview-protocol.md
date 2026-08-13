@@ -71,6 +71,21 @@ Pick the bank that matches the stack(s) resolved in Step 5.5. For mixed-stack pr
 - Memory model — ARC interfaces or manual `TObject.Free`?
 - Threading — anything async? `TThread`, `ITask`, OmniThreadLibrary?
 
+### Java / JVM
+
+- Build tool — Gradle (Groovy or Kotlin DSL) or Maven? Is there a wrapper (`gradlew` / `mvnw`) to use?
+- Java language level (8 / 11 / 17 / 21), or Kotlin / Groovy / Scala on the JVM?
+- Multi-module reactor — which module(s) does this touch, and what are the inter-module dependencies?
+- Framework — Spring Boot, Quarkus, Micronaut, Jakarta EE, or plain? Which DI style?
+- Persistence — Hibernate/JPA, Spring Data, jOOQ, MyBatis, plain JDBC? Existing mapping conventions?
+- Transaction boundaries — where does `@Transactional` (or equivalent) sit today, and does this change move it?
+- Test framework — JUnit 5, JUnit 4, TestNG, Spock, Kotest? Assertions — AssertJ, Hamcrest, built-ins?
+- Mocking — Mockito, MockK? WireMock or Testcontainers for the integration boundaries?
+- Static-analysis gates actually wired into the build — Spotless, Checkstyle, PMD, SpotBugs, ErrorProne? Which of them fail the build?
+- Concurrency — thread pools, `CompletableFuture`, reactive (Reactor / RxJava), virtual threads?
+- Nullability convention — Optional at boundaries, JSpecify / JetBrains / `javax` annotations, or nothing enforced?
+- Lombok — allowed, discouraged, or banned?
+
 ### Mixed (e.g. .NET API + React frontend)
 
 Run both banks. Add a coordination question: which layer ships first? Are API contracts already locked, or are they part of this work? Should TypeScript types be generated from the C# DTOs (e.g. via NSwag, TypeGen) or hand-written?
@@ -128,6 +143,12 @@ Stack-specific — built from the matching profile's "Conventions location" fiel
   - Read the project's coding standards doc + `.claude/rules/*.md` (if present)
   - Identify affected units, forms, services, and packages
   - Confirm IDE version + target platforms
+- **Java / JVM:**
+  - Read `issue.specs` in this folder
+  - Read `.editorconfig`, the Checkstyle/Spotless config, and `.claude/rules/*.md` (if present)
+  - Read the build file (`build.gradle(.kts)` / `pom.xml`) for the language level, modules, and which analysis plugins gate the build
+  - Identify affected modules, packages, beans/components, and transaction boundaries
+  - Confirm the JDK version and whether the wrapper (`gradlew` / `mvnw`) is present
 
 ### 3. Why
 1–3 sentences. The value/motivation: customer benefit, business driver, technical compliance, security ask. Sourced from interview "Goal & value".
@@ -136,7 +157,7 @@ Stack-specific — built from the matching profile's "Conventions location" fiel
 Explicit non-goals — the boundary that prevents scope creep.
 
 ### 5. Technical Requirements
-Concrete requirements discovered during the interview. Group by layer (data, persistence, service, API, UI for .NET/Blazor; or src/components, src/hooks, src/api, src/state for React; or domain/services/UI for Delphi) when applicable.
+Concrete requirements discovered during the interview. Group by layer (data, persistence, service, API, UI for .NET/Blazor; or src/components, src/hooks, src/api, src/state for React; or domain/services/UI for Delphi; or module → `domain`/`repository`/`service`/`controller` package for Java/JVM) when applicable.
 
 ### 6. Implementation Outline
 
@@ -162,6 +183,7 @@ Pulled from the matching stack profile:
 - **.NET / Blazor:** xUnit + AwesomeAssertions + NSubstitute; bUnit for Blazor components; Playwright(.NET) for E2E
 - **React:** Vitest or Jest + Testing Library + MSW; Playwright for E2E
 - **Delphi:** DUnitX + Delphi-Mocks / Spring4D
+- **Java / JVM:** JUnit 5 (Jupiter) + AssertJ + Mockito; Testcontainers / WireMock for integration boundaries; tests under `src/test/{java|kotlin}`
 
 Plus: test-project locations, data strategy, categories required (happy / edge / error / cancellation / concurrent / a11y for UI).
 
@@ -171,6 +193,7 @@ Checklist of gates the work must pass — pulled from the matching stack profile
 - **.NET / Blazor:** `dotnet build <solution>` → 0/0; `dotnet test <solution>` → all green; scoped tests; code-reviewer agent run.
 - **React:** `<pm> run typecheck` clean; `<pm> run lint` clean; `<pm> run build` clean; `<pm> run test` green; `<pm> run e2e` green (if applicable); manual exercise in `<pm> run dev`.
 - **Delphi:** `msbuild <groupproj> /p:Config=Debug` clean; DUnitX test exe(s) green; manual exercise of the binary.
+- **Java / JVM:** `./gradlew spotlessCheck` (or `./mvnw -B spotless:check`) clean; `./gradlew check` / `./mvnw -B verify` clean including Checkstyle/PMD/SpotBugs; scoped module tests green; full reactor build green; manual exercise via `bootRun` / `java -jar`.
 
 ### 9. Acceptance Criteria
 Checkbox list extracted from the ticket's stated AC (if present) PLUS every additional criterion surfaced by the interview. Each criterion must be testable.

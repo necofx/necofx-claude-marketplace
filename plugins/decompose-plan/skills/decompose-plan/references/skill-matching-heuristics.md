@@ -21,12 +21,20 @@ Apply to BOTH skill descriptions and phase content.
 | `blazor` | `blazor`, `razor`, `bunit`, `mudblazor`, `telerik`, `radzen`, `webassembly`, `wasm` (only when paired with `blazor` in same description) |
 | `react` | `react`, `typescript`, `jsx`, `tsx`, `next.js`, `nextjs`, `remix`, `vite`, `vitest`, `playwright`, `testing library`, `redux`, `zustand`, `tanstack` |
 | `delphi` | `delphi`, `object pascal`, `vcl`, `fmx`, `firemonkey`, `firedac`, `dunitx`, `dunit`, `devexpress`, `tms`, `spring4d` |
+| `java` | `java` (**whole word only** — see the note below), `jvm`, `gradle`, `maven`, `spring boot`, `spring data`, `springframework`, `junit`, `jupiter`, `mockito`, `assertj`, `hibernate`, `jpa`, `jakarta`, `quarkus`, `micronaut`, `testcontainers`, `scala` (**whole word only**), `groovy`, `kotlin` (only when `android` does NOT also match — otherwise `mobile`) |
 | `python` | `python`, `django`, `fastapi`, `flask`, `pytest`, `poetry`, `pip` |
 | `sql` | `sql`, `postgres`, `postgresql`, `mariadb`, `mysql`, `sqlite`, `mssql`, `sql server`, `oracle`, `firebird`, `rdbms`, `t-sql`, `plsql` |
 | `js` | `javascript`, `node`, `nodejs`, `npm`, `pnpm`, `yarn`, `bun` (use ONLY when `react` doesn't also match) |
-| `mobile` | `ios`, `swift`, `swiftui`, `android`, `kotlin`, `flutter`, `react native` |
+| `mobile` | `ios`, `swift`, `swiftui`, `android`, `kotlin` (only when paired with `android` — otherwise `java`), `flutter`, `react native` |
 
 A skill or phase may carry multiple stack tags. Mixed-stack projects are normal.
+
+**Substring-matching pitfalls.** These tables match on substrings, which produces two false positives that must be guarded with a word boundary before the tag is applied:
+
+- `java` is a substring of **`javascript`** — a React/Node skill would otherwise be tagged `java`, and the `−5` cross-stack penalty below would then fire on the wrong pairs. Tag `java` only on a whole-word match.
+- `scala` is a substring of **`scalable`** / `scaling` / `escalate` — words that appear constantly in ordinary architecture prose. Same rule: whole word only.
+
+`kotlin` is not a substring problem but a routing one: server-side Kotlin is `java`, Android Kotlin is `mobile`. Check whether `android` also matches before choosing.
 
 ### Domain tags
 
@@ -85,12 +93,12 @@ Layer comes from the phase's Files list and Goal, not from the inventory. Use th
 
 | Layer tag | Trigger (files or goal) |
 |---|---|
-| `data` | files under `Data/`, `Models/`, `Domain/`, `*.Data.Model/`; goal mentions "entity", "model", "DTO" |
-| `persistence` | files under `Persistence/`, `Repositories/`, `Mapping/`; mentions ORM, mapping, repository |
-| `service` | files under `Services/`, `BusinessLogic/`; mentions "service", "use case" |
-| `api` | files under `Controllers/`, `Api/`, `*.Api/`; mentions REST, endpoint, route |
+| `data` | files under `Data/`, `Models/`, `Domain/`, `*.Data.Model/`, `domain/`, `model/`, `entity/`, `dto/`; goal mentions "entity", "model", "DTO" |
+| `persistence` | files under `Persistence/`, `Repositories/`, `Mapping/`, `repository/`, `dao/`; mentions ORM, mapping, repository |
+| `service` | files under `Services/`, `BusinessLogic/`, `service/`, `usecase/`; mentions "service", "use case" |
+| `api` | files under `Controllers/`, `Api/`, `*.Api/`, `controller/`, `resource/`, `web/`; mentions REST, endpoint, route |
 | `ui` | files under `Pages/`, `Components/`, `*.razor`, `*.tsx`, `*.jsx`, `Forms/`, `src/components/`; mentions component, page, screen, view |
-| `test` | files under `Tests/`, `*.tests.*`, `__tests__/`, `*Tests/`; mentions "tests", "TDD" |
+| `test` | files under `Tests/`, `*.tests.*`, `__tests__/`, `*Tests/`, `src/test/java/`, `src/test/kotlin/`; mentions "tests", "TDD" |
 | `infra` | files under `docker/`, `.github/`, `scripts/`, `deploy/`; mentions "pipeline", "deployment", "infrastructure" |
 | `docs` | files under `docs/`, `README.md`, `*.md` only (no code); mentions "documentation", "ADR", "runbook" |
 

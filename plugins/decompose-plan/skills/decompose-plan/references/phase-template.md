@@ -15,6 +15,7 @@
 - **Blazor** — Same as .NET, plus Razor components, bUnit for component tests, Playwright (.NET) for E2E. Render mode: {Server / WASM / Auto / Hybrid}.
 - **React** — TypeScript + Vite (or Next.js / Remix). Build: `<pm> run build`. Test: `<pm> run test` (Vitest/Jest) + `<pm> run e2e` (Playwright). Lint: `<pm> run lint`. Type-check: `<pm> run typecheck` (or `tsc --noEmit`). Mocks via `vi.mock` / `jest.mock` + MSW for network.
 - **Delphi** — Object Pascal, VCL or FMX. Build: `msbuild <project>.dproj /p:Config=Debug /p:Platform=Win32`. Test: DUnitX. Mocks: Delphi-Mocks / Spring4D. Coding rules: project's coding-standards doc.
+- **Java / JVM** — Java {17/21} (or Kotlin), {Gradle|Maven} — pick one, the commands differ. Build: `./gradlew :{module}:build` / `./mvnw -B -pl {module} -am verify`. Test: `./gradlew :{module}:test --tests "{FQCN}"` / `./mvnw -B -pl {module} test -Dtest={Class}`. JUnit 5 + AssertJ + Mockito. Static analysis: {Spotless/Checkstyle/PMD/SpotBugs — list only what the build file actually wires in}. Coding rules: `.editorconfig` + `config/checkstyle/checkstyle.xml`.
 
 </details>
 
@@ -43,6 +44,7 @@ Exhaustive Create / Modify list. The coordinator uses this to detect file-confli
 - Blazor: `dotnet-senior-developer` + `blazor-frontend-developer` (UI portions)
 - React: `react-senior-developer`
 - Delphi: `delphi-senior-developer` (and the `read-delphi-standards` skill)
+- Java / JVM: `java-senior-developer` (or the project's JVM specialist — fall back to `general-purpose` when none is installed)
 - Cross-cutting: `code-reviewer`, `security-auditor`, `sql-pro`, `performance-engineer`
 
 Used as `subagent_type` by the coordinator. Default to `general-purpose` if no specialist fits.
@@ -94,6 +96,7 @@ Exact files the teammate must read before executing tasks. Each line: path — o
   - `CONTRIBUTING.md` / `STYLE.md` — common React convention
   - `.editorconfig` / `.eslintrc.*` / `.prettierrc.*` / `tsconfig.json` — React / TypeScript projects
   - project's coding-standards doc (often `docs/coding-standards.md`) — Delphi projects
+  - `.editorconfig` / `config/checkstyle/checkstyle.xml` / the Spotless or Checkstyle block in `build.gradle(.kts)` / `pom.xml` — Java / JVM projects
 - Stack-relevant rule files for the project (e.g. logging, error-handling, async, git-workflow when they exist as separate files)
 
 If a file does not exist, report it back in the per-phase notes section of `tasks.md` and continue with what's available.
@@ -132,13 +135,15 @@ The command and code-snippet placeholders are intentionally stack-neutral. Subst
 	#   rg --files src | rg "{ComponentName}\\.tsx?$"
 	# Delphi (PowerShell):
 	#   Get-ChildItem -Path Source -Recurse -Filter "*{ContractOrUnit}*.pas"
+	# Java / JVM (bash):
+	#   rg --files -g '*.java' -g '*.kt' | rg "{ClassName}\\.(java|kt)$"
 	```
 
 	Either way: read the existing signatures / props / interfaces and confirm them in the source. Note any deviation from what the master plan assumed (e.g. nullable vs non-nullable, namespace differences, missing props, default values). Surface deviations in the per-phase notes of `tasks.md`.
 
 - [ ] **Step {NN}.2: Author the first failing test.**
 
-	Path: `path/to/test/file.tests.{cs|tsx|pas}`
+	Path: `path/to/test/file.tests.{cs|tsx|pas}` (Java / JVM: `src/test/{java|kotlin}/{package}/{Class}Test.{java|kt}`)
 
 	Write the smallest possible test that pins ONE behavior of the new code. Use the assertion + mocking libraries from the project's stack profile (NSubstitute + AwesomeAssertions for .NET; `expect` + Testing Library + MSW for React; DUnitX + Delphi-Mocks for Delphi).
 

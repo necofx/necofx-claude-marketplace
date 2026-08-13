@@ -73,6 +73,19 @@ The frameworks, build commands, test commands, and coding-rules files every phas
 > - Common components: DevExpress / FireDAC / TMS / Indy (specify what's used)
 > - Coding rules: project's coding-standards doc + `.claude/rules/*.md` (if present)
 
+**Java / JVM example:**
+
+> - Java 17 / 21 (specify the level from the build file), or Kotlin / Groovy / Scala on the JVM
+> - Build tool: Gradle or Maven (specify — every command below depends on it)
+> - Build: `./gradlew build` — or `./mvnw -B verify`
+> - Test: `./gradlew test` — or `./mvnw -B test` (JUnit 5 / Jupiter)
+> - Assertions: AssertJ / Hamcrest / JUnit built-ins (specify)
+> - Mocking: Mockito / MockK, WireMock + Testcontainers for integration boundaries
+> - Static-analysis gates actually wired in: Spotless / Checkstyle / PMD / SpotBugs / ErrorProne (specify — these fail CI before the tests do)
+> - Modules: name the reactor modules the plan touches
+> - Framework: Spring Boot / Quarkus / Micronaut / plain (specify)
+> - Coding rules: `.editorconfig`, `config/checkstyle/checkstyle.xml`, `.claude/rules/*.md` (if present)
+
 For mixed-stack plans, list one block per stack and label each phase in § 6 with the stack it targets.
 
 ### 6. Phase index

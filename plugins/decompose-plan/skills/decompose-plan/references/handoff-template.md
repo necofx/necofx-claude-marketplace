@@ -29,6 +29,7 @@ Group by whatever layering the project uses, e.g.:
 - **.NET / Blazor projects** → Foundation / Domain / Persistence / BusinessLogic / API / UI / Tests
 - **React projects** → src/components / src/hooks / src/api / src/state / src/pages / tests / e2e / styles
 - **Delphi projects** → Source/Domain / Source/Services / Source/UI / Tests
+- **Java / JVM projects** → group by reactor module first, then by package: `{module}/src/main/java/**/{domain,repository,service,controller}` / `{module}/src/test/java`
 
 **Layer / area 1:**
 - _(to be filled — file paths)_
@@ -81,7 +82,19 @@ Substitute the project's actual commands from the matching tech-stack profile in
 2. Run the DUnitX test binaries built above → all green.
 3. Launch the VCL/FMX exe and exercise the change manually.
 
-4. **Operator manual-verification checklist** (always, if the master plan has one) — this is the ground-truth signal when the automated suite has pre-existing flakiness.
+**Java / JVM:** _(Gradle shown first, Maven second — keep only the one this repo uses, and always via the wrapper)_
+1. `./gradlew spotlessCheck` / `./mvnw -B spotless:check` → formatting clean (skip if not wired in).
+2. `./gradlew check` / `./mvnw -B verify` → compiles, and Checkstyle / PMD / SpotBugs / ErrorProne pass — these fail CI before any test does.
+3. Scoped tests for the touched modules:
+   ```bash
+   ./gradlew :{module-1}:test --tests "{FQCN-1}"
+   ./gradlew :{module-2}:test --tests "{FQCN-2}"
+   ```
+   Must all be green.
+4. Full reactor: `./gradlew build` / `./mvnw -B verify` — _(note any pre-existing noise / known-flaky suites)._
+5. Run the artifact and exercise the change (`./gradlew bootRun`, `./mvnw spring-boot:run`, or `java -jar {path-to-jar}`).
+
+**Any stack:** the **operator manual-verification checklist** (always, if the master plan has one) — this is the ground-truth signal when the automated suite has pre-existing flakiness.
 
 ## Recommended code review
 
@@ -101,6 +114,14 @@ Use the `code-reviewer` agent or the `/code-review` skill against the diff of `{
 - Error boundaries, suspense / loading states
 - Type-safety at API boundaries (Zod / TS narrowing)
 - Network mocking correctness in tests (MSW handlers cover the real shape)
+
+**Java / JVM:**
+- Null handling (Optional misuse, unchecked dereferences, nullability annotations at boundaries)
+- Concurrency (shared mutable state, thread-pool sizing, `CompletableFuture` error propagation, blocking calls on reactive threads)
+- Resource lifetime (try-with-resources, unclosed streams / connections, leaked executors)
+- Spring specifics: bean scope correctness (singleton holding request state), `@Transactional` boundaries and self-invocation, N+1 from lazy JPA associations
+- Exception discipline (swallowed exceptions, exceptions as control flow, lost causes when re-wrapping)
+- Test quality (Mockito over-mocking, missing Testcontainers/integration coverage at real boundaries)
 
 **Delphi:**
 - Memory management (TObject lifetime, FreeAndNil discipline, interface ref-counting)

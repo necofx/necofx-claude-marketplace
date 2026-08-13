@@ -187,7 +187,7 @@ The project-agnostic interview protocol. Read once at the start of Step 7. Sets 
 The canonical 9-section structure for `issue.specs`. Read once at the start of Step 6 and apply every section even when empty (use `_(none)_` placeholders). Project-agnostic.
 
 ### `references/tech-stack-profiles.md`
-Profiles for .NET, Blazor, React, and Delphi (build/test commands, test framework, assertion + mocking conventions, code-style notes, conventions location, commit format, root-marker detection). Read in Step 5.5 to pick the right stack(s); referenced again in Steps 7 and 8 whenever a template needs a stack-specific value substituted in. Add new profiles here when working on a different stack rather than hardcoding values in the templates.
+Profiles for .NET, Blazor, React, Delphi, and Java/JVM (build/test commands, test framework, assertion + mocking conventions, code-style notes, conventions location, commit format, root-marker detection). Read in Step 5.5 to pick the right stack(s); referenced again in Steps 7 and 8 whenever a template needs a stack-specific value substituted in. Add new profiles here when working on a different stack rather than hardcoding values in the templates.
 
 ### `references/master-plan-template.md`
 The writing-plans-shaped skeleton for `master-plan.md`. Read once at the start of Step 8. Sections: Context, Pre-flight Checklist, Why, Out of scope, Technical Requirements, Implementation Outline, Test Configuration, Validation & Testing, Acceptance Criteria, Success Criteria, Attachments, Related Docs. Stack-specific values come from the matching profile in `tech-stack-profiles.md`.
@@ -201,5 +201,5 @@ The writing-plans-shaped skeleton for `master-plan.md`. Read once at the start o
 - **No customer data in summaries**: when paraphrasing the ticket for the report-back in Step 9, never include real customer names, identifiers, or credentials.
 - **Skip if a recent plan exists**: when Step 1 finds an existing `master-plan.md` modified within the last 24 hours, mention this in the AskUserQuestion options so the user can choose to bail out without re-fetching everything.
 - **Date format**: always absolute (`YYYY-MM-DD HH:MM`), never relative.
-- **Tech-stack agnostic**: this skill works on .NET, Blazor, React, and Delphi projects out of the box (and any stack you add to `tech-stack-profiles.md`). The interview and master-plan templates pull stack-specific values from there; do NOT hardcode build/test commands or coding-rules paths in the skill itself.
+- **Tech-stack agnostic**: this skill works on .NET, Blazor, React, Delphi, and Java/JVM projects out of the box (and any stack you add to `tech-stack-profiles.md`). The interview and master-plan templates pull stack-specific values from there; do NOT hardcode build/test commands or coding-rules paths in the skill itself.
 - **Mixed-stack projects**: a ticket may span layers (e.g. add a REST endpoint + the React UI that calls it). Record all relevant stacks during Step 5.5; the master plan's Implementation Outline groups work by layer with the matching stack profile.

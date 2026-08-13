@@ -25,7 +25,7 @@ This plan implements `{TICKET-ID}`. Sourced from:
 
 {One block per stack the work touches. For mixed-stack plans, list each. Pull values from `tech-stack-profiles.md`.}
 
-- **{Stack name, e.g. .NET, Blazor, React, Delphi}** — covers {layer this applies to}
+- **{Stack name, e.g. .NET, Blazor, React, Delphi, Java/JVM}** — covers {layer this applies to}
   - Language / framework version
   - Build command
   - Test framework + assertion + mocking libs

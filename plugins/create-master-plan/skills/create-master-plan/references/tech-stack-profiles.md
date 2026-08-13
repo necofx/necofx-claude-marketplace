@@ -11,6 +11,8 @@ Use this precedence:
    - `*.sln` / `*.csproj` → **.NET** (or **Blazor** if any `.razor` files exist under the solution)
    - `package.json` with `"react"` / `"next"` / `"remix"` / `"gatsby"` in dependencies → **React**
    - `*.dproj` / `*.groupproj` / `*.dpr` → **Delphi**
+   - `build.gradle` / `build.gradle.kts` / `settings.gradle(.kts)` / `gradlew` → **Java / JVM (Gradle)**
+   - `pom.xml` / `mvnw` → **Java / JVM (Maven)**
    - `pyproject.toml` / `setup.py` → Python (consult user — not profiled here)
    - `Cargo.toml` → Rust (consult user — not profiled here)
 3. **Per-phase files hint.** If the master plan's File Map points a phase at `*.razor` files, treat that phase as Blazor even when sibling phases are pure .NET.
@@ -105,6 +107,38 @@ When a phase touches `.razor` files, the Verification step must include renderin
 | Build output | `.exe` (VCL) or platform-specific bundle (FMX) — verification often runs the binary |
 
 Delphi compiles per-project, not per-solution; phases must specify which `.dproj` they touch and rebuild only that one for fast feedback. The full `*.groupproj` build is the Verification gate.
+
+---
+
+## Profile: Java / JVM
+
+Covers Gradle and Maven projects, including Kotlin / Groovy / Scala sources that build through the same toolchain. The two build tools differ in every command below — **determine which one the repo uses before writing any command into a phase.**
+
+| Field | Value |
+|---|---|
+| Root markers | `build.gradle`, `build.gradle.kts`, `settings.gradle(.kts)`, `gradlew` → Gradle; `pom.xml`, `mvnw` → Maven |
+| Language | Java (8 / 11 / 17 / 21 LTS — read the actual level from `sourceCompatibility` / `maven.compiler.release`, don't assume), or Kotlin / Groovy / Scala on the JVM |
+| Build command | Gradle: `./gradlew build` — Maven: `./mvnw -B verify` |
+| Scoped build | Gradle: `./gradlew :<module>:build` — Maven: `./mvnw -B -pl <module> -am verify` |
+| Test command | Gradle: `./gradlew test` — Maven: `./mvnw -B test` |
+| Scoped test | Gradle: `./gradlew :<module>:test --tests "com.acme.FooTest"` — Maven: `./mvnw -B -pl <module> test -Dtest=FooTest` |
+| Test framework | JUnit 5 / Jupiter (preferred), JUnit 4 (legacy), TestNG, Spock (Groovy), Kotest (Kotlin) |
+| Assertions | AssertJ (preferred), Hamcrest, Truth, or JUnit's built-in `Assertions.*` — never mix styles within one module |
+| Mocking | Mockito (+ `mockito-junit-jupiter`), MockK (Kotlin), WireMock (HTTP boundaries), Testcontainers (real infra in integration tests) |
+| Conventions location | `.editorconfig`, `config/checkstyle/checkstyle.xml`, Spotless / Checkstyle / PMD / SpotBugs / ErrorProne config inside the build file, `.claude/rules/*.md`, `CONTRIBUTING.md` |
+| Commit convention | Conventional Commits is common; consult `git log` for the actual format |
+| Common DI | Spring / Spring Boot, Dagger, Guice, CDI (Quarkus / Jakarta EE), Micronaut |
+| Common ORM | Hibernate / JPA, Spring Data, jOOQ, MyBatis |
+| Common code-style flags | Google Java Format vs. Checkstyle/Sun style, 2 vs 4 spaces, star-import policy, `final` on params/locals, Lombok allowed or banned, nullability annotation family (JSpecify / JetBrains / `javax.annotation`) |
+| Build output | `.jar` / fat-jar / `.war`; run via `./gradlew bootRun`, `./mvnw spring-boot:run`, or `java -jar build/libs/<app>.jar` |
+
+**Always use the wrapper** (`./gradlew`, `./mvnw`) when it exists — a system-installed `gradle` / `mvn` may be a different version and produce failures unrelated to the change. On Windows the wrappers are `gradlew.bat` / `mvnw.cmd`.
+
+**Multi-module is the norm.** Both tools build a reactor of modules. A phase must name the module(s) it touches and run the scoped build/test for fast feedback; the full-reactor build is the Verification gate.
+
+**Build, test, and static analysis are separate gates.** Many Java repos fail CI on Checkstyle / Spotless / PMD / SpotBugs / ErrorProne long before a test fails. Read the build file for which plugins are actually wired in and list each real gate in the phase's Verification step (e.g. `./gradlew spotlessCheck check`). Gradle's `build` normally already runs `check`, and `mvn verify` normally already runs the analysis phase — confirm this in the build file rather than assuming either way.
+
+**Android is NOT this profile.** `build.gradle` plus an `AndroidManifest.xml` or the `com.android.application` plugin means an Android project: the build works the same way, but the UI layer, test tooling (Espresso, Robolectric), and lifecycle concerns are mobile ones. Tag those phases `mobile` and consult the user — Android is not profiled here.
 
 ---
 
