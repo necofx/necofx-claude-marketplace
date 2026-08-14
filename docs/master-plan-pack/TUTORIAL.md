@@ -739,6 +739,175 @@ Two rules make this safe rather than chaotic: a blocked phase writes `Status = b
 
 ---
 
+# Part 3.5 · Git: who commits, when, and how to say it
+
+This is the part that reads as confusing, and the confusion is real — but it comes from **two independent mechanisms being mistaken for one**:
+
+| Mechanism | Comes from | What it decides |
+|---|---|---|
+| **Commit batching** | These plugins | *When* a commit happens: never per phase, always in batches |
+| **Who runs git** | Your project + your instructions | *Whether Claude runs it* or hands you the command |
+| **Worktrees** | Neither of the above — `superpowers:using-git-worktrees` and the harness's own `EnterWorktree` | *Where* the work happens |
+
+Nothing in `create-master-plan`, `decompose-plan` or `plan-review` mentions worktrees. Not once. If a worktree appears in your run, it came from `superpowers` or from the harness, never from this pack.
+
+### The one rule the plugins do impose
+
+**Phases never commit.** Not "prefer not to" — the generated phase templates omit the commit step entirely, and the coordinator prompt tells every teammate it is read-only for git. Each phase leaves a clean, building, fully-tested tree and writes `(pending batch)` in its `tasks.md` row. The coordinator assembles a batched commit at end-of-round.
+
+That is not fussiness. Five agents finishing at unpredictable times and committing independently produce interleaved partial commits nobody can review — and asking you to approve one commit per phase stalls the run six times.
+
+```mermaid
+flowchart TD
+    P["a phase finishes"] --> T["tasks.md: (pending batch)<br/>clean tree, tests green"]
+    T --> W{"every phase<br/>in the round done?"}
+    W -- no --> WAIT["wait — no commit yet"]
+    W -- yes --> G["coordinator runs the full build + test gate"]
+    G --> B["assembles ONE batched commit for the round"]
+    B --> Q{"may Claude run git writes here?"}
+    Q -- "no — the default" --> U["prints the command · you run it<br/>the coordinator advances anyway"]
+    Q -- "yes — you said so" --> R["the coordinator commits it itself"]
+    U --> N["next round"]
+    R --> N
+```
+
+### The three postures, and the exact words
+
+Pick one and say it **once, at the start of the run** — in the same message as the Coordinator Prompt, or in the message right after it:
+
+| You want | Type this | What you get |
+|---|---|---|
+| **Show me, I commit** *(the default, and the safest)* | *"Don't run any git write commands. At the end of each round, print the batched commit as a copy-pasteable block and keep going."* | Commands as text. Nothing touches history without you. |
+| **Commit for me, don't push** | *"You may run `git add` and `git commit` yourself for the end-of-round batches. Never push."* | History advances locally, round by round. `origin` is untouched. |
+| **Commit and push** | *"Commit each round's batch yourself and push to `origin` on the feature branch. Never push to `main`."* | Fully autonomous. Say the branch name explicitly. |
+
+**Push is a separate permission from commit, and you have to say so.** "You can commit" does not mean "you can push", and Claude will not assume it does. Every posture above names the push rule on purpose.
+
+**Say the branch, too.** The harness convention is that Claude does not commit unless asked, and creates a branch first if you are on the default one. If you have a branch already, name it: *"we're on `feature/gh-412-partial-refunds`, commit there"*. Ambiguity here is what produces a surprise branch.
+
+### Say it once, permanently
+
+Repeating the posture every session is exactly how it drifts. Write it where every future run reads it — this file is checked by the phase templates and named in the skills:
+
+```markdown
+<!-- .claude/rules/git-workflow.md -->
+# Git workflow
+
+- Claude is READ-ONLY for git. Never run add / commit / push / rebase / reset.
+- Batched commit commands are surfaced as text; the human runs them.
+- Commit format: `GH-<issue>: <imperative summary>`
+- Never commit directly to `main`. Feature branches only.
+```
+
+With that file present, the coordinator emits commands instead of running them and you never restate it. Without it, the coordinator asks — or infers from what you said last, which is worse. `CLAUDE.md` works too; a dedicated rules file is easier for a reviewer to find.
+
+### How this lands as branches, commits and a PR
+
+The workflow has an opinion about history, and it is worth following because the reviews later depend on it.
+
+```mermaid
+gitGraph
+    commit id: "main"
+    branch feature/gh-412
+    checkout feature/gh-412
+    commit id: "GH-412: plan" tag: "before step 3"
+    commit id: "GH-412: round 0 - schema"
+    commit id: "GH-412: round 1 - domain, worker, chart"
+    commit id: "GH-412: round 2 - endpoint"
+    commit id: "GH-412: round 3 - e2e"
+    commit id: "GH-412: review fixes"
+    checkout main
+    merge feature/gh-412 tag: "PR"
+```
+
+**One branch per ticket, created before step 1.** Everything — the plan folder included — lands on it. The branch name carrying the ticket id is what lets you find this six months later from a blame line.
+
+**Commit the plan folder before you execute, on its own commit.** This is the highest-leverage habit in the whole flow, and it costs one command:
+
+```sh
+git add docs/plans/GH-412 && git commit -m "GH-412: plan"
+```
+
+Three things fall out of it. The implementation diff stops containing the plan, so it reads as code. `/plan-implementation-review` against `HEAD` sees exactly the changeset that implements the plan, not the plan plus the changeset. And if a review sends you back to sharpen the plan, that revision is its own commit and you can see what changed about the intent.
+
+**One commit per round** is what the coordinator proposes by default, and it is the right granularity: each commit is a coherent, building, tested unit that a reviewer can read alone. Ask for a single squashed commit at the end and you get a diff nobody reviews.
+
+| Artifact | Commit it? | Why |
+|---|---|---|
+| `issue.specs`, `master-plan.md` | **Yes** — in the plan commit | The reasoning behind the change. Reviewers open it before the code. |
+| `phases/`, `execute-plan.md` | **Yes** — same commit | How the work was split, and the file-conflict verdict. Explains the commit shape. |
+| `tasks.md` | **Yes** — it evolves across the round commits | The status board, then the record. Its Decisions section is why the reconciler works the way it does. |
+| `handoff.md` | **Yes** — in the last commit | Written to be read first by the reviewer. It is the PR body. |
+| `attachments/` | Usually | Unless the ticket attached something large or private. |
+| `codex-*-review-prompt.md`, `codex-*-review.md` | **Your call** | Committing them makes the second opinion part of the record; `.gitignore`-ing them keeps the folder clean. Pick one and be consistent — a half-committed review folder confuses the next reader. |
+
+**The PR opens after the last round, not before.** `handoff.md` is written to be its body: what shipped, reading order, files touched, **deviations from the plan**, TODOs, how to verify, review focus. Paste it in, and put the PR URL in `tasks.md`'s `PR` column so the board and the PR point at each other.
+
+Then the two reviews attach to it differently, and the difference matters:
+
+| | Where it runs | How it reaches the PR |
+|---|---|---|
+| `/code-review --comment` | In Claude Code, on the branch diff | Posts its findings as inline PR comments itself |
+| `/plan-implementation-review` | Generates a prompt; Codex runs it in its own session | Produces a report file. You paste it as a PR comment, or fix first and never post it |
+
+One detail that trips people on the review side: **once the work is committed on a branch, the diff base is no longer `HEAD`.** Answer `master` — or whatever you branched from — when the skill asks. Against `HEAD` on a committed branch the tree is clean, and the skill will correctly stop and tell you the review would be vacuous.
+
+### Worktrees — what they are actually for here
+
+A worktree is a second checkout of the same repository on its own branch, in its own directory. In this workflow the useful granularity is **one worktree per ticket, never one per phase.**
+
+**Not per phase, and this is the part worth internalising.** All six teammates work in the *same* tree. That is by design — it is precisely why the file-conflict matrix exists. Give each phase its own worktree and you have not removed the conflict, you have converted it into six merges nobody planned.
+
+So a worktree buys you one thing: **GH-412 does not touch your main checkout.** You keep working on something else while the run proceeds, and if the whole thing goes wrong you delete a directory.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as You
+    participant H as Claude · harness
+    participant W as worktree · feature/gh-412
+    participant M as your main checkout
+
+    U->>H: work on this ticket in a worktree
+    H->>W: EnterWorktree — new dir, new branch
+    Note over W,M: main checkout untouched from here on
+
+    U->>H: paste the Coordinator Prompt
+    H->>W: the whole run happens here — code, tasks.md, handoff.md
+    Note over W: docs/plans/GH-412/ lives INSIDE the worktree
+
+    H->>U: end-of-round batched commit command
+    U->>W: run it — the commit lands on feature/gh-412
+
+    U->>H: done — bring it back
+    H->>W: push the branch  (or merge into main)
+    H->>M: ExitWorktree — the directory goes away
+    Note over U,M: the branch survives — the directory does not
+```
+
+**How to ask for one:** *"Set up a worktree for GH-412 before we start"* — or state the preference up front and skip the consent question: *"Always use a worktree for ticket work."* The skill honours a preference you have already declared and only asks when you have not.
+
+Three things that bite people, in the order they bite:
+
+- **The plan folder moves.** `docs/plans/GH-412/` lives inside the worktree. Every path you type — for `/decompose-plan`, for the review skills — is relative to *that* directory. A review run from your main checkout will read a `tasks.md` that has not moved since decomposition.
+- **The directory is disposable; the branch is not.** `ExitWorktree` removes the directory. If the work is not committed and the branch not pushed, it is gone. Commit before you exit.
+- **Finishing is a separate decision.** A worktree does not merge itself. Say what you want: *"merge `feature/gh-412` into `main` and delete the worktree"*, or *"push the branch and open a PR, leave `main` alone"*. `superpowers:finishing-a-development-branch` exists for exactly this and will ask if you do not say.
+
+### The whole thing in four lines
+
+If you want one message that removes every ambiguity above, this is it — paste it right after the Coordinator Prompt:
+
+```text
+Work in a worktree on branch feature/gh-412-partial-refunds.
+Do not run any git write commands: print each end-of-round batched
+commit as a copy-pasteable block and continue without waiting for me.
+When the last round is done, stop — I decide about merging and pushing.
+```
+
+Every clause maps to one of the three mechanisms: where the work happens, who runs git, and when commits are grouped.
+
+---
+
 # Part 4 · Review what actually landed
 
 Two reviews, answering different questions. Neither replaces the other.
@@ -824,9 +993,11 @@ After the last round:
 codegraph init                                            # optional, in the repo root
 
 # per ticket
+git switch -c feature/gh-412-partial-refunds              # one branch per ticket, before step 1
 /create-master-plan 412                                   # → issue.specs, master-plan.md
 /decompose-plan docs/plans/GH-412                         # → phases/, tasks.md, execute-plan.md
 /plan-review-prompt                                       # optional — review the plan first
+git add docs/plans/GH-412 && git commit -m "GH-412: plan" # commit the plan BEFORE executing
 awk '/^## Coordinator Prompt/{f=1;next} f&&/^```/{c++;next} f&&c==1' \
   docs/plans/GH-412/execute-plan.md                       # paste into a FRESH conversation
 /code-review                                              # the diff on its own merits
@@ -845,6 +1016,7 @@ awk '/^## Coordinator Prompt/{f=1;next} f&&/^```/{c++;next} f&&c==1' \
 | step 2 | The phases are ones you would have written; read every `## Coordination Notes` flag | Sharpen the plan, not the phases |
 | step 2.5 | The external reviewer's findings on the plan | Fold them back into the plan before executing |
 | step 3 | The coordinator dispatched a round in **one** message | Stop it — sequential dispatch wastes the whole design |
+| step 3 | You stated the git posture **before** the first round, not after it | See [Part 3.5](#part-35--git-who-commits-when-and-how-to-say-it) — a posture declared mid-run leaves the earlier rounds inconsistent |
 | step 4/5 | Deviations are recorded, not absorbed | An unrecorded deviation is the one that bites in production |
 
 ## When it goes wrong
@@ -854,5 +1026,7 @@ Each plugin's README carries its own troubleshooting table. The three failures t
 | Symptom | Cause and fix |
 |---|---|
 | The coordinator loses track mid-run, or repeats a round | Step 3 was not started in a fresh conversation. Restart it in an empty one — `tasks.md` holds the state, so nothing is lost. |
+| A commit appeared you did not ask for, or none appeared at all | The git posture was never stated. Declare it once in `.claude/rules/git-workflow.md` rather than per session — [Part 3.5](#part-35--git-who-commits-when-and-how-to-say-it). |
+| A review reads a `tasks.md` that is out of date | You are running it from the main checkout while the work lives in a worktree. Every path is relative to the worktree. |
 | Two phases in one round hit the same file anyway | The matrix caught it and the coordination rule was ignored, or it missed the file because the master plan never named it. Move one phase to the next round. |
 | Agents ignore your conventions | Check a phase's "Documents to Read" — an empty list means there was nothing to cite. Writing `.claude/rules/*.md` is the highest-leverage thing you can do here, and nobody can ship it for you. |
