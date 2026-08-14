@@ -73,6 +73,8 @@ paste the Coordinator Prompt       →  one agent per phase, a round at a time
 
 The last step is a genuine second opinion, not a gate: the workflow closes without it, and `/code-review` inside Claude Code covers the ordinary case.
 
+**One worked example joins all three:** [`docs/master-plan-pack/TUTORIAL.md`](docs/master-plan-pack/TUTORIAL.md) follows a single ticket across a polyglot repository — Java, Python, PostgreSQL, Docker, Kubernetes — from adding the marketplace to the final review, with the real artifacts each step produces. Read it once before your first run; the per-plugin READMEs are the reference you come back to.
+
 You can start at step 2: hand-write `issue.specs` and `master-plan.md` and nothing downstream knows the difference. Only step 1 touches a tracker at all, and it reads GitHub by default — Jira, Linear and pasted text are adapter profiles, selected by a detection ladder.
 
 **The workflow is not ours.** It was designed by someone else, who uses it daily and shared their files directly, and it is published here with their permission. The structure, the reasoning and nearly all of the prose are theirs; this repository adds the manifests, the READMEs, and two changes to the skills themselves — the original is hard-wired to Jira and carries install-time placeholders, so the tracker was moved behind an adapter layer with GitHub as the default; and the two review skills gained an optional final step that runs the prompt they generate through the Codex CLI instead of leaving you to run it by hand. Their full manual, updated to match, ships inside each plugin as `MANUAL.html`.
