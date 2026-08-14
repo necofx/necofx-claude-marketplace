@@ -198,7 +198,7 @@ sequenceDiagram
     D-->>S: payments-state-machine.md · reconciler.md
     S->>F: write issue.specs — BEFORE asking anything
 
-    Note over S,D: everything above is now "known";<br/>a question it already answers is a defect
+    Note over S,D: everything above now counts as known —<br/>a question it already answers is a defect
 
     loop several rounds — do not rush this
         S->>D: codegraph explore — ground the question in real code
@@ -385,22 +385,22 @@ Then it topologically sorts them into rounds. **Phases in a round run in paralle
 
 ```mermaid
 flowchart TD
-    R0["<b>Round 0</b> — sequential"]
-    P00["PHASE-00 · Flyway migration + refunds table<br/><i>sql-pro</i>"]
+    R0["ROUND 0 — sequential"]
+    P00["PHASE-00 · Flyway migration + refunds table<br/>owner: sql-pro"]
     R0 --> P00
 
-    P00 --> R1["<b>Round 1</b> — 3 in parallel, no shared files"]
-    R1 --> P01["PHASE-01 · RefundService partial-refund domain<br/><i>java-pro</i>"]
-    R1 --> P02["PHASE-02 · reconciler stops treating refunds as terminal<br/><i>python-pro</i>"]
-    R1 --> P03["PHASE-03 · Helm values + ConfigMap for the flag<br/><i>kubernetes-architect</i>"]
+    P00 --> R1["ROUND 1 — 3 in parallel, no shared files"]
+    R1 --> P01["PHASE-01 · RefundService partial-refund domain<br/>owner: java-pro"]
+    R1 --> P02["PHASE-02 · reconciler stops treating refunds as terminal<br/>owner: python-pro"]
+    R1 --> P03["PHASE-03 · Helm values + ConfigMap for the flag<br/>owner: kubernetes-architect"]
 
-    P01 --> R2["<b>Round 2</b> — sequential"]
+    P01 --> R2["ROUND 2 — sequential"]
     P02 --> R2
     P03 --> R2
-    R2 --> P04["PHASE-04 · POST /payments/id/refunds + OpenAPI<br/><i>java-pro</i>"]
+    R2 --> P04["PHASE-04 · POST /payments/id/refunds + OpenAPI<br/>owner: java-pro"]
 
-    P04 --> R3["<b>Round 3</b> — sequential"]
-    R3 --> P05["PHASE-05 · Testcontainers E2E + image build + helm template<br/><i>deployment-engineer</i>"]
+    P04 --> R3["ROUND 3 — sequential"]
+    R3 --> P05["PHASE-05 · Testcontainers E2E + image build + helm template<br/>owner: deployment-engineer"]
 ```
 
 Two mechanisms do the real work here, and both are worth understanding because both are things you will be asked to check.
