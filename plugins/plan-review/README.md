@@ -53,7 +53,11 @@ Optionally, export `CODEX_OPENROUTER_MODEL` with the slug you want the reviewer 
 
 ### If the repo is indexed by CodeGraph, the prompt says so
 
-When a `.codegraph/` directory exists at the repo root, both skills add a **Tooling** block to the prompt telling the reviewer to answer "who calls this, what does this change reach, which tests cover it" with `codegraph explore` and `codegraph impact` rather than a `grep`/read loop. One call returns the symbols' line-numbered source plus the call paths between them, and it follows dynamic dispatch — registries, DI resolution, callbacks — that a text search cannot. That is precisely where "this change is isolated" turns out to be false.
+When a `.codegraph/` directory exists at the repo root, CodeGraph is used on **both sides of the handoff**.
+
+The skills use it while building the prompt: the reading list of callers, blast radius and affected tests is resolved with `codegraph impact` and `codegraph affected` instead of being inferred from the diff or from what the plan happens to cite. A list built the other way inherits the blind spots of the thing under review, which defeats the point.
+
+And the prompt carries a **Tooling** block telling the reviewer to answer "who calls this, what does this change reach, which tests cover it" the same way rather than with a `grep`/read loop. One call returns the symbols' line-numbered source plus the call paths between them, and it follows dynamic dispatch — registries, DI resolution, callbacks — that a text search cannot. That is precisely where "this change is isolated" turns out to be false.
 
 It works inside `--sandbox read-only`; that was verified, not assumed. One caveat behind the verification: the index's daemon was already running at the time, so if the CLI ever has to start one it may want write access. The block therefore tells the reviewer to fall back to ordinary search if the command is not available to it.
 

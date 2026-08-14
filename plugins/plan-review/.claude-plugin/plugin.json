@@ -1,6 +1,6 @@
 {
   "name": "plan-review",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Steps 4-5 of a plan-first multi-agent workflow, packaged from its author's own files: generate a self-contained review prompt for a fresh external reviewer — either of the plan before it is built, or of the real changeset against the plan afterwards — and optionally run it through the Codex CLI.",
   "author": {
     "name": "necofx",
