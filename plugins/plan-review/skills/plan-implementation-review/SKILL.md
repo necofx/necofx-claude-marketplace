@@ -85,6 +85,8 @@ Read the plan files and the changeset, and assemble a grounded, **verified** rea
 
 **C. Repo surface to read in full.** A diff hunk is not enough to judge correctness — the surrounding code, the callers of a changed function, the tests, and any touched config/doc must be read whole. List the post-change files the reviewer should open completely: the changed files themselves; the callers / blast-radius of modified shared code; the test files; the touched configs. Annotate with what to check.
 
+**C-bis. CodeGraph, when the repo has one.** If a `.codegraph/` directory exists at the repository root, add a short **Tooling** block to the generated prompt telling the reviewer to reach for it instead of a search loop: `codegraph explore "<question>"` returns the relevant symbols' verbatim line-numbered source plus the call paths between them in one call; `codegraph impact <symbol>` gives the blast radius of a changed shared symbol — the group-C question, answered against the real graph instead of a text match, including dynamic dispatch a `grep` cannot follow; `codegraph affected <changed files>` names the tests the changeset reaches, which is how the reviewer judges whether the tests that landed actually cover it. Two constraints go in the block: fall back to ordinary search if the command is unavailable in the reviewer's environment, and never index the repository — indexing is the user's decision. If there is no `.codegraph/` directory, omit the block entirely rather than mentioning a tool the reviewer cannot use.
+
 **D. The repo's own standards — discover, don't assume.** Find and name the standards the code must satisfy: root `AGENTS.md` / `AGENTS.md` / `GEMINI.md`, `.Codex/rules/*`, `CONTRIBUTING` / coding-standards docs, `.editorconfig`, linter/formatter configs (eslint, ruff, stylecop, etc.). Do **not** hardcode any specific rule — point the reviewer at the files so it checks the code against the project's *actual* conventions. (Same discover-and-verify move the sibling does for paths.)
 
 **E. Optional calibration (read if accessible).** A predecessor review, the master-plan-review prompt if one was generated for this folder, canonical examples of the same kind of change elsewhere in the repo.
@@ -110,6 +112,9 @@ before reviewing.
 
 # What you're reviewing
 <one paragraph: the plan, the changeset, and the two-axis standard to hold it to>
+
+# Tooling  (only if the repo is indexed — omit this section otherwise)
+<the codegraph note>
 
 # Onboarding — read these first (in order)
 ## A. The plan — what was promised

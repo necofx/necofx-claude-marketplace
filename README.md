@@ -51,9 +51,9 @@ claude plugin list               # which plugins are installed and enabled
 
 | Plugin | What it does | Version | Docs |
 |---|---|---|---|
-| `create-master-plan` | Step 1: pulls a ticket — **GitHub by default**, Jira/Linear/free-form as adapter profiles — with its links, cited documents and attachments, scans the repo's docs, detects the stack, interviews you over a coverage matrix, and writes `issue.specs` + `master-plan.md`. | 0.3.2 | [README](plugins/create-master-plan/README.md) |
-| `decompose-plan` | Step 2: turns that plan into atomic phases grouped into parallel rounds, file-conflict checked and skill-matched, emitting `phases/`, `tasks.md`, `execute-plan.md` and `handoff.md`. | 0.3.3 | [README](plugins/decompose-plan/README.md) |
-| `plan-review` | Steps 4–5, optional: generates a self-contained review prompt for a fresh external reviewer — of the plan before it is built, or of the real changeset against the plan afterwards — and offers to run it through the Codex CLI for you. | 0.2.1 | [README](plugins/plan-review/README.md) |
+| `create-master-plan` | Step 1: pulls a ticket — **GitHub by default**, Jira/Linear/free-form as adapter profiles — with its links, cited documents and attachments, scans the repo's docs, detects the stack, interviews you over a coverage matrix, and writes `issue.specs` + `master-plan.md`. | 0.3.3 | [README](plugins/create-master-plan/README.md) |
+| `decompose-plan` | Step 2: turns that plan into atomic phases grouped into parallel rounds, file-conflict checked and skill-matched, emitting `phases/`, `tasks.md`, `execute-plan.md` and `handoff.md`. | 0.3.4 | [README](plugins/decompose-plan/README.md) |
+| `plan-review` | Steps 4–5, optional: generates a self-contained review prompt for a fresh external reviewer — of the plan before it is built, or of the real changeset against the plan afterwards — and offers to run it through the Codex CLI for you. | 0.3.0 | [README](plugins/plan-review/README.md) |
 
 Install instructions specific to a plugin, its tutorial, its limits and its troubleshooting live in that plugin's own README. Nothing about a plugin is duplicated here.
 

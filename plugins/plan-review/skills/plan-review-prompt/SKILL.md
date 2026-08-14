@@ -72,6 +72,7 @@ This is where the skill earns its keep. Read the relevant plan files for the cho
    - **C. Repo surface to verify** — the code, scripts, configs, and tests the plan touches, so the reviewer can confirm the plan's `file:line` references resolve and its claims about the code are true. This is the most important group and is usually the longest.
    - **D. Optional calibration** — predecessor plans, canonical examples in the same repo, or the skill/templates the plan was generated from, if discoverable. Mark as "read if accessible".
 5. **Annotate each entry** with a one-line "why this matters for the review". A bare path list is weak; the reason is what directs the reviewer's attention.
+6. **CodeGraph, when the repo has one.** If a `.codegraph/` directory exists at the repository root, add a short **Tooling** block to the generated prompt: tell the reviewer to prefer `codegraph explore "<question>"` over `Glob`/`Grep`/`Read` loops when checking the plan's claims about the code, because one call returns the relevant symbols' verbatim line-numbered source, the call paths between them and what depends on them — and it follows dynamic dispatch (DI resolution, registries, callbacks) that a text search cannot, which is exactly where a plan's "this is isolated" claim tends to be wrong. `codegraph impact <symbol>` answers "what does changing this reach". Two constraints go in the block: fall back to ordinary search if the command is unavailable in the reviewer's environment, and never index the repository — indexing is the user's decision. If there is no `.codegraph/` directory, omit the block entirely rather than mentioning a tool the reviewer cannot use.
 
 When the mode is **all**, build ONE merged onboarding (the plan artifacts of both kinds, the shared source of truth once, and the union of the repo surface) — do not duplicate the shared files across two lists.
 
@@ -93,6 +94,9 @@ Run from the repo root: <abs repo root>. <one line on the stack / platform>.
 
 # What you're reviewing
 <one paragraph: what this plan is, the mode, and the standard to hold it to>
+
+# Tooling  (only if the repo is indexed — omit this section otherwise)
+<the codegraph note>
 
 # Onboarding — read these first (in order)
 ## A. The plan under review

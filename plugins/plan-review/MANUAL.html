@@ -329,6 +329,11 @@ recommend at score >= 3, cap 4 per phase</code></pre>
     repo.</p>
 </div>
 
+<p>On a repo with a <code>.codegraph/</code> directory the prompt also carries a
+  <a href="#codegraph">CodeGraph</a> block, so the reviewer answers "who calls this, what
+  does this change reach, which tests cover it" against the real graph instead of a search
+  loop — it works inside the read-only sandbox. No index, no block.</p>
+
 <p>Nothing downstream waits on this. <code>/code-review</code> covers the ordinary case;
   reach for a peer review when the question is whether the code built <em>what the plan
   specified</em> — which a diff review cannot judge, because judging it requires the plan.

@@ -51,6 +51,14 @@ Neither skill needs it to generate a prompt. Without Codex installed, everything
 
 Optionally, export `CODEX_OPENROUTER_MODEL` with the slug you want the reviewer to run on. Unset, the run uses whatever model your Codex config already points at.
 
+### If the repo is indexed by CodeGraph, the prompt says so
+
+When a `.codegraph/` directory exists at the repo root, both skills add a **Tooling** block to the prompt telling the reviewer to answer "who calls this, what does this change reach, which tests cover it" with `codegraph explore` and `codegraph impact` rather than a `grep`/read loop. One call returns the symbols' line-numbered source plus the call paths between them, and it follows dynamic dispatch — registries, DI resolution, callbacks — that a text search cannot. That is precisely where "this change is isolated" turns out to be false.
+
+It works inside `--sandbox read-only`; that was verified, not assumed. One caveat behind the verification: the index's daemon was already running at the time, so if the CLI ever has to start one it may want write access. The block therefore tells the reviewer to fall back to ordinary search if the command is not available to it.
+
+No `.codegraph/` directory means no block at all — the prompt never mentions a tool the reviewer cannot use. And neither skill will index your repository: that is your decision, and it writes hundreds of megabytes. The [`decompose-plan` README](../decompose-plan/README.md#4-optional-codegraph) has the install if you want one.
+
 ### How the review is run
 
 Both tutorials below end the same way, so the mechanics are here once.
