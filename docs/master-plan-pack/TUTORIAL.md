@@ -150,7 +150,8 @@ flowchart LR
     CG --> U1["step 1 · the interview grounds<br/>its questions in real code"]
     CG --> U2["step 2 · resolves each phase's<br/>true modify-list"]
     CG --> U3["step 3 · each teammate locates<br/>its surface area in one call"]
-    CG --> U4["step 5 · the external reviewer<br/>checks blast radius"]
+    CG --> U4["steps 2.5 and 5 · the skill builds the<br/>reading list from the graph…"]
+    U4 --> U5["…and the reviewer verifies<br/>blast radius the same way"]
 ```
 
 The one that pays for the install is **step 2**: `codegraph impact` finds the registration file the plan forgot to mention, and a forgotten registration file is the usual cause of two phases in the same round colliding.
@@ -592,7 +593,9 @@ codex exec --sandbox read-only ${CODEX_OPENROUTER_MODEL:+-m "$CODEX_OPENROUTER_M
   < docs/plans/GH-412/codex-review-prompt-all.md
 ```
 
-`--sandbox read-only` is the point — a review must not touch what it judges — and `-o` captures the report verbatim, so you read the reviewer's own words. On an indexed repo the prompt also carries a CodeGraph block, so the reviewer checks the plan's claims against the real call graph rather than a text match.
+`--sandbox read-only` is the point — a review must not touch what it judges — and `-o` captures the report verbatim, so you read the reviewer's own words.
+
+**On an indexed repo, CodeGraph is used on both sides of this handoff.** The skill builds the reading list from the graph — `codegraph explore` for the surface the plan touches, `codegraph impact` for the caller the plan never mentioned — and the prompt then carries a Tooling block telling the reviewer to verify the same way. The order matters: a reading list harvested only from what the plan *cites* inherits the plan's blind spots, so the review would be thorough about everything except the thing the plan forgot.
 
 **The two gates, and who does what.** This shape is identical for both review skills — only the inputs differ:
 
@@ -611,6 +614,8 @@ sequenceDiagram
     S->>F: read the plan / the phases / tasks.md
     S->>R: harvest every cited path — and verify it exists
     R-->>S: real paths, plus one that is missing → flagged as a finding
+    S->>R: codegraph impact / affected — the blast radius the plan never cited
+    R-->>S: callers reached by dynamic dispatch + the tests they touch
     S->>U: the prompt, printed inline
 
     rect rgb(240, 240, 240)
@@ -755,7 +760,7 @@ flowchart LR
 
 It asks for the planning folder and what the diff is measured against — `HEAD` for pending changes, or `master` when your agents cannot commit and the work is already on a branch. **If the working tree is clean it stops and asks** rather than emitting a prompt over an empty diff.
 
-Then it builds a prompt from two sources of truth at once: the plan (what was *promised*) and the changeset (what *landed*), plus the exact commands to reproduce the diff live, the untracked files listed separately because they carry no diff, a changed-file → plan-item map that is **navigational and never evaluative**, and your repository's own standards discovered rather than assumed. Run it the same way:
+Then it builds a prompt from two sources of truth at once: the plan (what was *promised*) and the changeset (what *landed*), plus the exact commands to reproduce the diff live, the untracked files listed separately because they carry no diff, a changed-file → plan-item map that is **navigational and never evaluative**, and your repository's own standards discovered rather than assumed. On an indexed repo the blast-radius half of that reading list comes from `codegraph impact` and the test list from `codegraph affected`, rather than being inferred from the hunks — a diff shows what changed, never who depended on it. Run it the same way:
 
 ```sh
 codex exec --sandbox read-only ${CODEX_OPENROUTER_MODEL:+-m "$CODEX_OPENROUTER_MODEL"} \
