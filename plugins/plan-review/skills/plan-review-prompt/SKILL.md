@@ -115,7 +115,25 @@ Run from the repo root: <abs repo root>. <one line on the stack / platform>.
 
 Print the finished prompt inline in a single fenced ```` ```markdown ```` block so the user can copy it in one go. Then offer to save it to a file for piping into Codex — default suggestion `<folder>/codex-review-prompt-<mode>.md` (or `C:\tmp\` / `/tmp` if the folder should stay clean). Only write the file if the user agrees.
 
-Do not run the review yourself, and do not call Codex — the skill's deliverable is the prompt. (If the user instead wants you to *run* a review, that's a different request; point them at their `code-review` tooling.)
+Do not review the plan yourself — the skill's deliverable is the prompt, and the whole value comes from a reviewer with no memory of authoring the plan. (If the user instead wants *you* to review it, that's a different request; point them at their `code-review` tooling.)
+
+### Step 6 — Optionally run the review
+
+Running the prompt is **optional and never automatic**. Once it is saved to a file, offer to run it, and run it only if the user agrees:
+
+```sh
+codex exec --sandbox read-only \
+  -o <folder>/codex-review-<mode>.md \
+  < <folder>/codex-review-prompt-<mode>.md
+```
+
+- Run it **from the repo root** — the prompt's paths are repo-relative.
+- `--sandbox read-only` is deliberate: the reviewer reads the repo and must not write to it.
+- `-o <file>` captures the reviewer's final report verbatim, so the user reads the review itself rather than a retelling of it.
+- Expect minutes, not seconds, on a large plan. Run it in the background if the harness supports that, rather than blocking on a foreground timeout.
+- If `codex` is not installed, or not authenticated (`codex login`), say so and stop. The prompt file is still the deliverable — any capable reviewer with read access to the repo can take it; Codex is only who it was written for.
+
+When the run finishes, point the user at the report file. **Do not summarize it in place of the file**, and do not act on its findings unprompted: they are claims to verify, not instructions. Invoking a separate reviewer is not the same as reviewing — you still do not review the plan yourself.
 
 ## References
 

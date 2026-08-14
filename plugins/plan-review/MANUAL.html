@@ -296,6 +296,41 @@ recommend at score >= 3, cap 4 per phase</code></pre>
     wrong finding costs more than missing a marginal one.</p>
 </div>
 
+<h3>Peer review with Codex <span class="pill">optional</span></h3>
+
+<p>Everything above happens in the session that did the work. When you want a reviewer that
+  never saw the plan being written, the <code>plan-review</code> skills generate a
+  self-contained review prompt and hand it to an external agent — the plan before it is
+  built, or the changeset against the plan afterwards:</p>
+
+<pre><code>/plan-review-prompt            # the plan — run it after step 2, before you execute
+/plan-implementation-review    # the changeset against the plan — run it here</code></pre>
+
+<p>Each prints the prompt, offers to save it, and then offers to run it. Say yes and it
+  executes this from the repo root:</p>
+
+<pre><code>codex exec --sandbox read-only -o &lt;report&gt;.md &lt; &lt;prompt&gt;.md</code></pre>
+
+<p><code>read-only</code> is the point — a review must not touch the tree it is judging —
+  and <code>-o</code> captures the report verbatim, so you read the reviewer's own words
+  rather than a retelling of them. Both offers are opt-in: decline either and you still
+  have the prompt, which is the deliverable. Any capable reviewer with read access to the
+  repo will take it; Codex is simply who it was written for.</p>
+
+<div class="warn-box">
+  <span class="label">Don't edit while it runs</span>
+  <p>The prompt makes the reviewer regenerate the diff live rather than trust the embedded
+    snapshot, so a changeset review takes minutes and anything you change meanwhile
+    produces findings against code that no longer exists. Start it, then work outside the
+    repo.</p>
+</div>
+
+<p>Nothing downstream waits on this. <code>/code-review</code> covers the ordinary case;
+  reach for a peer review when the question is whether the code built <em>what the plan
+  specified</em> — which a diff review cannot judge, because judging it requires the plan.
+  Note that the CLI's own <code>codex review --base main</code> is the former, not the
+  latter: it knows nothing about your plan.</p>
+
 <p>Then close the loop: real commit SHAs and the final summary in <code>tasks.md</code>;
   every section of <code>handoff.md</code> filled — especially <strong>deviations from the
   plan</strong>, which is where reviewers spend their attention and where unexamined
@@ -328,10 +363,12 @@ recommend at score >= 3, cap 4 per phase</code></pre>
   <tbody>
     <tr><td><code>create-master-plan</code></td><td>Ticket → researched plan. 5 references: source adapters, interview protocol, issue.specs template, master-plan template, tech-stack profiles.</td></tr>
     <tr><td><code>decompose-plan</code></td><td>Plan → phases, rounds, orchestrator. 6 references: master-plan format, phase / tasks / execute-plan / handoff templates, skill-matching heuristics, tech-stack profiles.</td></tr>
+    <tr><td><code>plan-review-prompt</code> <span class="pill">optional</span></td><td>Plan → review prompt for an external reviewer, before it is built. 2 references: master-plan review, decomposed-plan review.</td></tr>
+    <tr><td><code>plan-implementation-review</code> <span class="pill">optional</span></td><td>Plan + changeset → review prompt for an external reviewer, afterwards. 1 reference: implementation review.</td></tr>
   </tbody>
 </table>
 </div>
-<p><code>tech-stack-profiles.md</code> is duplicated in both skills so each stays
+<p><code>tech-stack-profiles.md</code> is duplicated in both planning skills so each stays
   self-contained. Edit one, edit the other.</p>
 
 <h3>Required, not shipped</h3>
@@ -341,6 +378,7 @@ recommend at score >= 3, cap 4 per phase</code></pre>
   <tbody>
     <tr><td><code>superpowers</code> plugin</td><td><code>writing-plans</code> (plan + phase shape), <code>subagent-driven-development</code> (dispatch), <code>test-driven-development</code>, <code>verification-before-completion</code> (the done gate), <code>dispatching-parallel-agents</code></td></tr>
     <tr><td><code>/code-review</code></td><td>Step 4 <span class="pill req">built in</span></td></tr>
+    <tr><td><code>codex</code> CLI</td><td>Only to <em>run</em> the peer review of steps 4–5, logged in. Generating the prompt never needs it <span class="pill">optional</span></td></tr>
     <tr><td><code>gh</code> CLI</td><td>Step 1's default fetch, authenticated. Swap in an <code>atlassian</code> or <code>linear</code> MCP for those trackers; skippable entirely if you plan from a plain description.</td></tr>
   </tbody>
 </table>

@@ -129,7 +129,26 @@ before reviewing.
 
 Print the finished prompt inline in a single fenced ```` ```markdown ```` block so the user can copy it in one go. Then offer to save it to a file for piping into Codex — default suggestion `<folder>/codex-implementation-review-prompt.md` (or `C:\tmp\` / `/tmp` if the folder should stay clean). Write the file only if the user agrees.
 
-Do not run the review yourself, and do not call Codex — the skill's deliverable is the prompt. (If the user instead wants you to *run* a review, that's a different request; point them at their `code-review` tooling.)
+Do not review the changeset yourself — the skill's deliverable is the prompt, and the whole value comes from a reviewer with no memory of authoring the change. (If the user instead wants *you* to review it, that's a different request; point them at their `code-review` tooling.)
+
+### Step 7 — Optionally run the review
+
+Running the prompt is **optional and never automatic**. Once it is saved to a file, offer to run it, and run it only if the user agrees:
+
+```sh
+codex exec --sandbox read-only \
+  -o <folder>/codex-implementation-review.md \
+  < <folder>/codex-implementation-review-prompt.md
+```
+
+- Run it **from the repo root** — the prompt's paths are repo-relative and it regenerates the diff itself.
+- `--sandbox read-only` is deliberate and sufficient: the reviewer reads the repo and runs read-only git; it must not touch the tree it is judging.
+- `-o <file>` captures the reviewer's final report verbatim, so the user reads the review itself rather than a retelling of it.
+- Expect minutes, not seconds, on a large changeset. Run it in the background if the harness supports that, rather than blocking on a foreground timeout.
+- **Don't let the tree drift during the run.** The reviewer reproduces the diff live; edits made while it works produce findings against code that no longer exists.
+- If `codex` is not installed, or not authenticated (`codex login`), say so and stop. The prompt file is still the deliverable — any capable reviewer with read access to the repo can take it; Codex is only who it was written for.
+
+When the run finishes, point the user at the report file. **Do not summarize it in place of the file**, and do not start applying findings unprompted: they are claims to verify against the code, and accepting a wrong one costs more than missing a marginal one. Invoking a separate reviewer is not the same as reviewing — you still do not review the changeset yourself.
 
 ## References
 
