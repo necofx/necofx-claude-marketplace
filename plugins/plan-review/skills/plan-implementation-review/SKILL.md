@@ -143,13 +143,13 @@ Do not review the changeset yourself — the skill's deliverable is the prompt, 
 Running the prompt is **optional and never automatic**. Once it is saved to a file, offer to run it, and run it only if the user agrees:
 
 ```sh
-codex exec --sandbox read-only ${CODEX_OPENROUTER_MODEL:+-m "$CODEX_OPENROUTER_MODEL"} \
+codex exec --sandbox read-only ${CODEX_MODEL:+-m "$CODEX_MODEL"} \
   -o <folder>/codex-implementation-review.md \
   < <folder>/codex-implementation-review-prompt.md
 ```
 
 - Run it **from the repo root** — the prompt's paths are repo-relative and it regenerates the diff itself.
-- **Take the model from the environment, never hardcode one.** If `CODEX_OPENROUTER_MODEL` is set, pass its value as `-m <slug>`; if it is unset, omit `-m` and let the CLI use the model from its own config. The expansion above does exactly that in one line.
+- **Take the model from the environment, never hardcode one.** If `CODEX_MODEL` is set, pass its value as `-m <name>`; if it is unset, omit `-m` and let the CLI use the model from its own config (Codex's stock default — no special provider or routing). The expansion above does exactly that in one line.
 - `--sandbox read-only` is deliberate and sufficient: the reviewer reads the repo and runs read-only git; it must not touch the tree it is judging.
 - `-o <file>` captures the reviewer's final report verbatim, so the user reads the review itself rather than a retelling of it.
 - Expect minutes, not seconds, on a large changeset. Run it in the background if the harness supports that, rather than blocking on a foreground timeout.

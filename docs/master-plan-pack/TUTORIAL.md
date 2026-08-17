@@ -588,7 +588,7 @@ It asks for the planning folder and what to review — `master plan`, `phases`, 
 It prints the prompt, offers to save it, and then offers to run it. Both offers are opt-in:
 
 ```sh
-codex exec --sandbox read-only ${CODEX_OPENROUTER_MODEL:+-m "$CODEX_OPENROUTER_MODEL"} \
+codex exec --sandbox read-only ${CODEX_MODEL:+-m "$CODEX_MODEL"} \
   -o docs/plans/GH-412/codex-review-all.md \
   < docs/plans/GH-412/codex-review-prompt-all.md
 ```
@@ -932,7 +932,7 @@ It asks for the planning folder and what the diff is measured against — `HEAD`
 Then it builds a prompt from two sources of truth at once: the plan (what was *promised*) and the changeset (what *landed*), plus the exact commands to reproduce the diff live, the untracked files listed separately because they carry no diff, a changed-file → plan-item map that is **navigational and never evaluative**, and your repository's own standards discovered rather than assumed. On an indexed repo the blast-radius half of that reading list comes from `codegraph impact` and the test list from `codegraph affected`, rather than being inferred from the hunks — a diff shows what changed, never who depended on it. Run it the same way:
 
 ```sh
-codex exec --sandbox read-only ${CODEX_OPENROUTER_MODEL:+-m "$CODEX_OPENROUTER_MODEL"} \
+codex exec --sandbox read-only ${CODEX_MODEL:+-m "$CODEX_MODEL"} \
   -o docs/plans/GH-412/codex-implementation-review.md \
   < docs/plans/GH-412/codex-implementation-review-prompt.md
 ```

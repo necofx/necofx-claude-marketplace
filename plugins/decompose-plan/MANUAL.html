@@ -309,13 +309,13 @@ recommend at score >= 3, cap 4 per phase</code></pre>
 <p>Each prints the prompt, offers to save it, and then offers to run it. Say yes and it
   executes this from the repo root:</p>
 
-<pre><code>codex exec --sandbox read-only ${CODEX_OPENROUTER_MODEL:+-m "$CODEX_OPENROUTER_MODEL"} \
+<pre><code>codex exec --sandbox read-only ${CODEX_MODEL:+-m "$CODEX_MODEL"} \
   -o &lt;report&gt;.md &lt; &lt;prompt&gt;.md</code></pre>
 
 <p><code>read-only</code> is the point — a review must not touch the tree it is judging —
   and <code>-o</code> captures the report verbatim, so you read the reviewer's own words
   rather than a retelling of them. The model is never hardcoded: export
-  <code>CODEX_OPENROUTER_MODEL</code> to pick one — a reviewer is exactly where you want a
+  <code>CODEX_MODEL</code> to pick one — a reviewer is exactly where you want a
   different model from the one that wrote the code — and leave it unset to fall back to
   your Codex config. Both offers are opt-in: decline either and you still
   have the prompt, which is the deliverable. Any capable reviewer with read access to the

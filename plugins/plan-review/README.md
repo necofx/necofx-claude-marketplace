@@ -49,7 +49,7 @@ codex login          # only if you aren't already
 
 Neither skill needs it to generate a prompt. Without Codex installed, everything still works — you just paste the prompt somewhere yourself.
 
-Optionally, export `CODEX_OPENROUTER_MODEL` with the slug you want the reviewer to run on. Unset, the run uses whatever model your Codex config already points at.
+Optionally, export `CODEX_MODEL` with the name of the model you want the reviewer to run on. Unset, the run uses Codex's own default — no special provider or routing.
 
 ### If the repo is indexed by CodeGraph, the prompt says so
 
@@ -70,7 +70,7 @@ Both tutorials below end the same way, so the mechanics are here once.
 The skill offers to run the review after it saves the prompt. Say yes and it executes exactly this, from the repo root:
 
 ```sh
-codex exec --sandbox read-only ${CODEX_OPENROUTER_MODEL:+-m "$CODEX_OPENROUTER_MODEL"} \
+codex exec --sandbox read-only ${CODEX_MODEL:+-m "$CODEX_MODEL"} \
   -o <report>.md < <prompt>.md
 ```
 
@@ -78,7 +78,7 @@ Say no — or run it yourself later, or on another machine — and the same line
 
 - **`--sandbox read-only`** is enough, and is the point. The reviewer reads the repository and runs read-only git; it must never touch the tree it is judging. A review that edits your code is not a review.
 - **`-o <report>.md`** captures the reviewer's final report to a file, verbatim. You read the review itself, not a retelling of it — which is also why the skill points you at the file instead of summarizing it back at you.
-- **The model comes from the environment.** Set `CODEX_OPENROUTER_MODEL` to a slug and the run uses it; leave it unset and the `${...:+...}` expansion collapses to nothing, so the CLI falls back to the model in its own config. Nothing here hardcodes a model, which matters because a reviewer is exactly the place you want to reach for a different one than the one that wrote the code.
+- **The model comes from the environment.** Set `CODEX_MODEL` to a name and the run uses it; leave it unset and the `${...:+...}` expansion collapses to nothing, so the CLI falls back to Codex's own default — no special provider or routing. Nothing here hardcodes a model, which matters because a reviewer is exactly the place you want to reach for a different one than the one that wrote the code.
 - **It takes minutes**, not seconds, on a real changeset, so the skill backgrounds it where the harness allows. Don't edit the tree while it works: the reviewer regenerates the diff live, and edits mid-run produce findings against code that no longer exists.
 
 Prefer a different reviewer? The prompt is plain markdown. Paste it into a fresh session of whatever you use, from the repo root.
@@ -117,7 +117,7 @@ The prompt is printed inline in a single fenced block so you can copy it in one 
 Say yes to both and you never leave the session. The command it runs, and the one to paste if you'd rather drive it yourself:
 
 ```sh
-codex exec --sandbox read-only ${CODEX_OPENROUTER_MODEL:+-m "$CODEX_OPENROUTER_MODEL"} \
+codex exec --sandbox read-only ${CODEX_MODEL:+-m "$CODEX_MODEL"} \
   -o docs/plans/GH-412/codex-review-all.md \
   < docs/plans/GH-412/codex-review-prompt-all.md
 ```
@@ -165,7 +165,7 @@ The review then runs on two axes: did the changeset build what the plan specifie
 Same shape as Tutorial A: the prompt is printed inline, offered as `<folder>/codex-implementation-review-prompt.md`, and — once saved — offered as a run:
 
 ```sh
-codex exec --sandbox read-only ${CODEX_OPENROUTER_MODEL:+-m "$CODEX_OPENROUTER_MODEL"} \
+codex exec --sandbox read-only ${CODEX_MODEL:+-m "$CODEX_MODEL"} \
   -o docs/plans/GH-412/codex-implementation-review.md \
   < docs/plans/GH-412/codex-implementation-review-prompt.md
 ```
