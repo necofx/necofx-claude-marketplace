@@ -967,7 +967,7 @@ manual checklist. Now they are what `/close-master-plan` asks for and does:
    is where reviewers spend their attention and where unexamined assumptions hide.
 3. **Anything durable folded into `.claude/rules/`** rather than left in a plan folder nobody
    reopens. If this run taught you that the team wants domain errors instead of exceptions, that
-   belongs in a rule file, not in `docs/plans/closed/GH-412/`.
+   belongs in a rule file, not in `docs/plans/active/GH-412/`.
 
 ```markdown
 ## Deviations from the plan
@@ -1007,7 +1007,7 @@ that command for you.
 Run this **after** both reviews, not instead of either — `/close-master-plan` is the last step in
 the pack, not a substitute for `/code-review` or `/plan-implementation-review`. GH-412 has both
 behind it: the diff review from Part 4, and the optional plan-conformance review that came back
-clean apart from the naming mismatch Phase 05's deviation note already explains.
+clean apart from the naming mismatch Phase 03's deviation note already explains.
 
 ```mermaid
 sequenceDiagram
