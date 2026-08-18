@@ -126,11 +126,13 @@
 
 <nav class="toc">
   <ol>
-    <li><a href="#glance">The five steps</a></li>
+    <li><a href="#glance">The six steps</a></li>
     <li><a href="#step1">1 · Create the master plan</a></li>
     <li><a href="#step2">2 · Decompose into rounds</a></li>
     <li><a href="#step3">3 · Execute</a></li>
-    <li><a href="#step45">4–5 · Review, fix, close out</a></li>
+    <li><a href="#step4">4 · Review and fix</a></li>
+    <li><a href="#step5">5 · Peer review</a></li>
+    <li><a href="#step6">6 · Close out the plan</a></li>
     <li><a href="#artifacts">Generated files</a></li>
     <li><a href="#parts">Skills, agents, MCP</a></li>
     <li><a href="#codegraph">Token economy: CodeGraph</a></li>
@@ -141,7 +143,7 @@
   </ol>
 </nav>
 
-<h2 id="glance">The five steps</h2>
+<h2 id="glance">The six steps</h2>
 
 <div class="flow">
   <div class="flow-step"><span class="flow-num">1</span><div class="flow-body">
@@ -152,7 +154,7 @@
   </div></div>
   <div class="flow-step"><span class="flow-num">2</span><div class="flow-body">
     <strong>Decompose into rounds</strong>
-    <span class="cmd">/decompose-plan docs/plans/GH-412</span>
+    <span class="cmd">/decompose-plan docs/plans/active/GH-412</span>
     <p class="out">Atomic phases, grouped into parallel rounds, file-conflict checked →
       <code>phases/</code>, <code>tasks.md</code>, <code>execute-plan.md</code>, <code>handoff.md</code></p>
   </div></div>
@@ -168,10 +170,17 @@
     <p class="out">Findings on the branch diff → fix → review again</p>
   </div></div>
   <div class="flow-step"><span class="flow-num">5</span><div class="flow-body">
-    <strong>Close out the documents</strong>
-    <span class="cmd">—</span>
-    <p class="out">Finish <code>tasks.md</code> and <code>handoff.md</code>; fold anything
-      durable into the project's rules</p>
+    <strong>Peer review</strong>
+    <span class="cmd">/plan-review-prompt · /plan-implementation-review</span>
+    <p class="out">Optional, run by a fresh external reviewer → the plan judged on its own
+      merits, or the changeset judged against the plan</p>
+  </div></div>
+  <div class="flow-step"><span class="flow-num">6</span><div class="flow-body">
+    <strong>Close out the plan</strong>
+    <span class="cmd">/close-master-plan GH-412</span>
+    <p class="out">Reconciles <code>tasks.md</code> against the real commits, verifies
+      <code>handoff.md</code>, distils durable lessons into <code>.claude/rules/</code>, stamps
+      the outcome, archives the folder under <code>docs/plans/closed/</code></p>
   </div></div>
 </div>
 
@@ -208,7 +217,7 @@
 
 <h2 id="step2">2 · Decompose into rounds</h2>
 
-<pre><code>/decompose-plan docs/plans/GH-412</code></pre>
+<pre><code>/decompose-plan docs/plans/active/GH-412</code></pre>
 
 <p><strong>Phase</strong> — one atomic unit for one agent. Single-focus (an "and" in the
   goal means split it), independently verifiable, 30 min – 3 h, dependencies named not
@@ -271,7 +280,7 @@ recommend at score >= 3, cap 4 per phase</code></pre>
     approvals would stall the run constantly.</p>
 </div>
 
-<h2 id="step45">4–5 · Review, fix, close out</h2>
+<h2 id="step4">4 · Review and fix</h2>
 
 <pre><code>/code-review</code></pre>
 
@@ -296,7 +305,7 @@ recommend at score >= 3, cap 4 per phase</code></pre>
     wrong finding costs more than missing a marginal one.</p>
 </div>
 
-<h3>Peer review with Codex <span class="pill">optional</span></h3>
+<h2 id="step5">5 · Peer review <span class="pill">optional</span></h2>
 
 <p>Everything above happens in the session that did the work. When you want a reviewer that
   never saw the plan being written, the <code>plan-review</code> skills generate a
@@ -340,11 +349,52 @@ recommend at score >= 3, cap 4 per phase</code></pre>
   Note that the CLI's own <code>codex review --base main</code> is the former, not the
   latter: it knows nothing about your plan.</p>
 
-<p>Then close the loop: real commit SHAs and the final summary in <code>tasks.md</code>;
+<h2 id="step6">6 · Close out the plan</h2>
+
+<pre><code>/close-master-plan GH-412</code></pre>
+
+<p>Runs after step 4 and the optional step 5 — the last step in the pack, not a substitute for
+  either. It closes the loop: real commit SHAs and a final summary in <code>tasks.md</code>,
   every section of <code>handoff.md</code> filled — especially <strong>deviations from the
-  plan</strong>, which is where reviewers spend their attention and where unexamined
-  assumptions hide; and anything durable folded into <code>.claude/rules/</code> rather
-  than left in a plan folder nobody reopens.</p>
+  plan</strong>, which is where reviewers spend their attention and where unexamined assumptions
+  hide — and anything durable folded into <code>.claude/rules/</code> rather than left in a plan
+  folder nobody reopens. It never changes git state itself: every step that touches files stages
+  them, and the skill stops short of committing, pushing, switching branches, or touching the
+  worktree it's running inside. You run every command it prints.</p>
+
+<div class="tablewrap">
+<table>
+  <thead><tr><th>Phase of the step</th><th>What happens</th></tr></thead>
+  <tbody>
+    <tr><td>Locate</td><td>Resolves the plan folder from a ticket id or a bare invocation. Checks <code>closed/&lt;ID&gt;/</code> first — if it's already there, this run is idempotent: read the status, report it, stop. Otherwise <code>active/&lt;ID&gt;/</code>, falling back to the flat legacy layout.</td></tr>
+    <tr><td>Git preflight</td><td>Requires a clean working tree — the close commit must contain the close and nothing else — detects whether this checkout is a worktree, and finds the base branch to diff against for the commit list the next phase reconciles.</td></tr>
+    <tr><td>Establish status</td><td>Asks which of exactly three outcomes applies: <code>completed</code>, <code>abandoned</code>, or <code>superseded by &lt;TICKET-ID&gt;</code>. There is no <code>merged</code> status — the PR hasn't merged at this point, that's the whole reason the archive travels inside it.</td></tr>
+    <tr><td>Reconcile <code>tasks.md</code></td><td>Builds a phase-to-commit mapping from <code>tasks.md</code> and the branch's real commit log and has you correct it — never guesses a row it can't place. A plan with any phase still <code>pending</code>, <code>in_progress</code> or <code>blocked</code> can't be stamped <code>completed</code> until you drop it or go finish it.</td></tr>
+    <tr><td>Verify <code>handoff.md</code></td><td>Scans it against a checklist and confirms out loud that an empty "Key deviations from the original plan" section is genuinely empty, not just unfilled.</td></tr>
+    <tr><td>Distil</td><td>Reads the deviations and <code>tasks.md</code>'s decisions, applies a durability test, and proposes concrete diffs against <code>.claude/rules/*.md</code> — approved one candidate at a time. Zero approved candidates is a normal outcome, not a failure.</td></tr>
+    <tr><td>Stamp and archive</td><td>Writes a one-line <code>&lt;!-- STATUS: ... --&gt;</code> header into <code>master-plan.md</code> (and <code>tasks.md</code> / <code>handoff.md</code> when present), <code>git mv</code>s the folder to <code>docs/plans/closed/&lt;ID&gt;/</code>, and creates or updates <code>docs/plans/INDEX.md</code>.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="note">
+  <span class="label">Idempotent by construction</span>
+  <p>A second run against an already-closed plan reads its status from
+    <code>closed/&lt;ID&gt;/master-plan.md</code>, reports it, and stops — it never re-stamps or
+    re-moves a folder, and never duplicates its <code>INDEX.md</code> row.</p>
+</div>
+
+<div class="warn-box">
+  <span class="label">Abandoning needs a second command</span>
+  <p>An <code>abandoned</code> close still writes to the branch about to be deleted. The skill
+    prints the close commit <em>plus</em> a rescue <code>git cherry-pick</code> onto the default
+    branch — skip the second command and the archive this step exists to preserve is discarded
+    along with the branch.</p>
+</div>
+
+<p>There is no reopen: undoing a mistaken close is <code>git revert</code> of the close commit, or
+  a manual reverse. Once it prints the commit it stops — merging, pushing and worktree cleanup are
+  <code>superpowers:finishing-a-development-branch</code>'s job, not this skill's.</p>
 
 <h2 id="artifacts">Generated files</h2>
 
@@ -356,9 +406,11 @@ recommend at score >= 3, cap 4 per phase</code></pre>
     <tr><td><code>master-plan.md</code></td><td>1</td><td>Context, tech stack, pre-flight checklist, why, out of scope, technical requirements by layer, implementation outline, test config, validation gates, AC.</td></tr>
     <tr><td><code>attachments/</code></td><td>1</td><td>Downloaded ticket attachments. Failures are recorded in Context Gaps, never abort the run.</td></tr>
     <tr><td><code>phases/PHASE-NN-*.md</code></td><td>2</td><td>Goal, architecture, stack, exhaustive create/modify list, dependencies, owner agent, risk/effort, skills, documents to read, atomic steps, verification, notes downstream.</td></tr>
-    <tr><td><code>tasks.md</code></td><td>2 + everyone</td><td>Single source of truth for status: phase table, rounds graph, conflict matrix, update protocol, per-phase progress, blockers, decisions, final summary.</td></tr>
+    <tr><td><code>tasks.md</code></td><td>2 + everyone, reconciled at 6</td><td>Single source of truth for status: phase table, rounds graph, conflict matrix, update protocol, per-phase progress, blockers, decisions, final summary.</td></tr>
     <tr><td><code>execute-plan.md</code></td><td>2</td><td>Round list + the coordinator prompt you paste.</td></tr>
-    <tr><td><code>handoff.md</code></td><td>2, filled at 5</td><td>What shipped, reading order, files touched, deviations, TODOs, how to verify, review focus.</td></tr>
+    <tr><td><code>handoff.md</code></td><td>2, filled at 6</td><td>What shipped, reading order, files touched, deviations, TODOs, how to verify, review focus.</td></tr>
+    <tr><td><code>&lt;!-- STATUS: ... --&gt;</code> header</td><td>6</td><td>Stamped into <code>master-plan.md</code>, and into <code>tasks.md</code> / <code>handoff.md</code> when they exist: outcome, closed date, PR, rules distilled.</td></tr>
+    <tr><td><code>docs/plans/INDEX.md</code></td><td>6</td><td>One row per closed plan, newest first — the only file step 6 writes outside the plan's own folder.</td></tr>
   </tbody>
 </table>
 </div>
@@ -374,6 +426,7 @@ recommend at score >= 3, cap 4 per phase</code></pre>
     <tr><td><code>decompose-plan</code></td><td>Plan → phases, rounds, orchestrator. 6 references: master-plan format, phase / tasks / execute-plan / handoff templates, skill-matching heuristics, tech-stack profiles.</td></tr>
     <tr><td><code>plan-review-prompt</code> <span class="pill">optional</span></td><td>Plan → review prompt for an external reviewer, before it is built. 2 references: master-plan review, decomposed-plan review.</td></tr>
     <tr><td><code>plan-implementation-review</code> <span class="pill">optional</span></td><td>Plan + changeset → review prompt for an external reviewer, afterwards. 1 reference: implementation review.</td></tr>
+    <tr><td><code>close-master-plan</code></td><td>Plan → reconciled, verified, distilled and archived. 4 references: plan layout, closeout checklist, rule-distillation heuristics, INDEX template.</td></tr>
   </tbody>
 </table>
 </div>
@@ -387,7 +440,7 @@ recommend at score >= 3, cap 4 per phase</code></pre>
   <tbody>
     <tr><td><code>superpowers</code> plugin</td><td><code>writing-plans</code> (plan + phase shape), <code>subagent-driven-development</code> (dispatch), <code>test-driven-development</code>, <code>verification-before-completion</code> (the done gate), <code>dispatching-parallel-agents</code></td></tr>
     <tr><td><code>/code-review</code></td><td>Step 4 <span class="pill req">built in</span></td></tr>
-    <tr><td><code>codex</code> CLI</td><td>Only to <em>run</em> the peer review of steps 4–5, logged in. Generating the prompt never needs it <span class="pill">optional</span></td></tr>
+    <tr><td><code>codex</code> CLI</td><td>Only to <em>run</em> the peer review of step 5, logged in. Generating the prompt never needs it <span class="pill">optional</span></td></tr>
     <tr><td><code>gh</code> CLI</td><td>Step 1's default fetch, authenticated. Swap in an <code>atlassian</code> or <code>linear</code> MCP for those trackers; skippable entirely if you plan from a plain description.</td></tr>
   </tbody>
 </table>
@@ -537,7 +590,7 @@ claude mcp list          # expect: atlassian - Connected</code></pre>
 <p><strong>No tracker at all?</strong> Paste the requirement and the free-form adapter takes
   it, or hand-write <code>issue.specs</code> from
   <code>references/issue-specs-template.md</code> and start at
-  <code>/decompose-plan</code>. Steps 2–5 have no tracker dependency.</p>
+  <code>/decompose-plan</code>. Steps 2–6 have no tracker dependency.</p>
 
 <h3>4 · Optional MCP servers</h3>
 <pre><code>claude mcp add serena -- uvx --from git+https://github.com/oraios/serena.git \
@@ -582,12 +635,18 @@ codegraph init && codegraph status</code></pre>
 </div>
 
 <h3>7 · Point it at your plans directory <span class="pill">optional</span></h3>
-<p>Plan folders default to <code>docs/plans/&lt;TICKET-ID&gt;/</code>. To put them elsewhere,
-  say so in the planning repository's <code>CLAUDE.md</code> — and give
-  <code>decompose-plan</code> and the review skills the same value, since all three address
-  the same folder and a mismatch means step 2 cannot find what step 1 wrote.</p>
+<p><code>docs/plans/</code> is a root, not a per-ticket pattern: an active plan lives at
+  <code>docs/plans/active/&lt;TICKET-ID&gt;/</code>, and closing it moves the folder to
+  <code>docs/plans/closed/&lt;TICKET-ID&gt;/</code>. To put the root elsewhere, say so in the
+  planning repository's <code>CLAUDE.md</code> — and give <code>decompose-plan</code>, the
+  review skills and <code>close-master-plan</code> the same value, since all four address the
+  same root and a mismatch means step 2 cannot find what step 1 wrote, or step 6 cannot find
+  what step 2 populated.</p>
 <p>There are no <code>{{TOKEN}}</code> placeholders left to substitute; the defaults are
-  baked in and the tracker lives behind the adapter layer.</p>
+  baked in and the tracker lives behind the adapter layer. A <code>CLAUDE.md</code> declaration
+  that still ends in <code>&lt;TICKET-ID&gt;</code> — the pre-0.4.0 wording, from before plans
+  had an <code>active</code>/<code>closed</code> split — still works: strip that final segment
+  and what remains is the root.</p>
 
 <h3>8 · Decide the git policy</h3>
 <p>Shipped default: <code>settings.json</code> denies every git write and
@@ -602,9 +661,10 @@ codegraph init && codegraph status</code></pre>
   three that catch the most review comments — usually code style, testing, error handling.</p>
 
 <h3>10 · Smoke-test</h3>
-<p>Run all five steps on a small, well-understood ticket. You're checking plumbing, not
+<p>Run all six steps on a small, well-understood ticket. You're checking plumbing, not
   ambition: the fetch connects, the interview asks sensible questions, the phases are ones
-  you'd have written yourself, the coordinator dispatches in parallel.</p>
+  you'd have written yourself, the coordinator dispatches in parallel, and
+  <code>/close-master-plan</code> finds the folder it just executed and archives it cleanly.</p>
 
 <h2 id="failure">When it goes wrong</h2>
 
@@ -623,6 +683,8 @@ codegraph init && codegraph status</code></pre>
     <tr><td>Agents still grep instead of using CodeGraph</td><td>No <code>.codegraph/</code> directory (every CodeGraph instruction is conditional on it), the CodeGraph block is missing from <code>CLAUDE.md</code>, or the server isn't running.</td></tr>
     <tr><td><code>codegraph</code> MCP won't start</td><td>Almost always an <code>npx</code>-only setup — it must be on <code>PATH</code>: <code>npm i -g @colbymchenry/codegraph</code>. Confirm the agent id was <code>claude</code>, not <code>claude-code</code>.</td></tr>
     <tr><td>CodeGraph returns stale symbols</td><td>The watcher lags ~1s. <code>codegraph sync .</code>; <code>codegraph unlock</code> clears a stale lock.</td></tr>
+    <tr><td>Step 6 stops with "working tree not clean"</td><td>By design — the close commit must contain only the close. Commit or stash whatever else is pending, then re-run.</td></tr>
+    <tr><td>Abandoned-close cherry-pick conflicts</td><td>Expected, not a failure: the plan folder usually never existed on the default branch. <code>git add</code> the reported paths to accept the incoming files, then <code>git cherry-pick --continue</code>.</td></tr>
   </tbody>
 </table>
 </div>
