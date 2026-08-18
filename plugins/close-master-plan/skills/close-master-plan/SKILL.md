@@ -38,8 +38,10 @@ Follow these steps in order.
 - If `<plans-root>/active/` holds exactly one folder, propose it and confirm with the user before
   proceeding.
 - If it holds several, ask which one via `AskUserQuestion`.
-- If it is empty, fall back to the flat layout (point 3 above).
-- If that finds nothing either, stop and say so — there is no plan folder to close.
+- If `<plans-root>/active/` is empty or absent, look for flat-legacy plan folders instead: list
+  `<plans-root>/*`, excluding `active/`, `closed/` and `INDEX.md`. Apply the same rule — exactly
+  one candidate: propose and confirm; several: ask which one via `AskUserQuestion`; none: stop and
+  say so, there is no plan folder to close.
 
 ### Step 2 — Git preflight
 
@@ -52,10 +54,11 @@ Establish, in this order:
 3. **Whether this checkout is a worktree**, via `git rev-parse --git-dir` versus
    `git rev-parse --git-common-dir` — they differ in a worktree, match in a normal checkout — and
    which branch is checked out.
-4. **The base branch**, via `git merge-base` against the repository's default branch. If it is
-   ambiguous, ask the user via `AskUserQuestion` — once work is committed on a branch, the diff
-   base is no longer `HEAD`; asking against `HEAD` on a committed branch would find a clean tree
-   and vacuously report nothing to close.
+4. **The base branch**, via `git merge-base` against the repository's default branch — the branch
+   `origin/HEAD` points at, or `main`/`master` if there is no `origin`. If it is ambiguous, ask the
+   user via `AskUserQuestion` — once work is committed on a branch, the diff base is no longer
+   `HEAD`; asking against `HEAD` on a committed branch would find a clean tree and vacuously report
+   nothing to close.
 5. **The branch's commits**: `git log --oneline --no-merges <base>..HEAD`. This is the raw material
    Step 4 reconciles against `tasks.md`.
 
@@ -63,9 +66,10 @@ Then two warnings. Neither of these blocks the run — they inform the user, the
 close:
 
 - **Worktree/main-checkout mismatch.** If the branch name does not reference the ticket id *and*
-  the plan folder shows no history on this branch, warn that the run may be happening from the
-  main checkout while the actual work lives in a worktree — the pack's most common mistake. Every
-  path the rest of this skill touches is relative to wherever it is actually running.
+  the plan folder shows no history on this branch (`git log --follow -- <plan-folder>` returns
+  nothing older than this branch's own commits), warn that the run may be happening from the main
+  checkout while the actual work lives in a worktree — the pack's most common mistake. Every path
+  the rest of this skill touches is relative to wherever it is actually running.
 - **Absent implementation review.** If no implementation-review artifact
   (`codex-implementation-review.md` or equivalent) is present in the plan folder, say so: closing
   now stamps and archives a folder that a later review may send the user back into. That review is
