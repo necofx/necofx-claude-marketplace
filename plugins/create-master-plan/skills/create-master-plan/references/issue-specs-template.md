@@ -20,7 +20,7 @@ Section 9 (Interview Notes) is appended later by Step 7 of the parent skill; the
 **Parent:** {epic / tracking issue + title, or `_(none)_`}  
 **Source:** {github | jira | linear | file | free-form}  
 **Fetched at:** {YYYY-MM-DD HH:MM}  
-**Plan folder:** `docs/plans/{TICKET-ID}/`
+**Plan folder:** `<plans-root>/active/{TICKET-ID}/` (or the flat legacy path on fallback — see `references/plan-layout.md`)
 
 ---
 
