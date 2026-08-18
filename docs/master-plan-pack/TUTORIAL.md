@@ -1,6 +1,6 @@
 # The master-plan pack — one ticket, end to end
 
-Three plugins — [`create-master-plan`](../../plugins/create-master-plan/), [`decompose-plan`](../../plugins/decompose-plan/), [`plan-review`](../../plugins/plan-review/) — are one workflow. Each plugin's README documents that plugin. **This document is the worked example that joins them**: a single ticket, on a single repository, from an empty machine to a merged change.
+Four plugins — [`create-master-plan`](../../plugins/create-master-plan/), [`decompose-plan`](../../plugins/decompose-plan/), [`plan-review`](../../plugins/plan-review/), [`close-master-plan`](../../plugins/close-master-plan/) — are one workflow. Each plugin's README documents that plugin. **This document is the worked example that joins them**: a single ticket, on a single repository, from an empty machine to a merged change.
 
 Everything here is one continuous story. The repository, the ticket and the artifacts are invented; every command, file name, template section and agent name is real, and comes from the skills as they ship.
 
@@ -32,9 +32,9 @@ That is the shape this workflow is for. A one-file change does not need it.
 
 ---
 
-## The five steps, and what carries state between them
+## The six steps, and what carries state between them
 
-Nothing is handed between steps by hand. **The plan folder is the handoff** — every step reads and writes `docs/plans/GH-412/`, so "give the next step the plan" is just naming that folder again.
+Nothing is handed between steps by hand. **The plan folder is the handoff** — every step reads and writes `docs/plans/active/GH-412/`, so "give the next step the plan" is just naming that folder again.
 
 ```mermaid
 flowchart TD
@@ -62,18 +62,20 @@ flowchart TD
 
     C1 --> S4["4 · /code-review<br/>the diff on its own merits"]
     C1 -. optional .-> R2["5 · plan-implementation-review<br/>the diff against the plan"]
-    S4 --> M["commit · merge"]
-    R2 -. findings .-> M
+    S4 --> S6["6 · close-master-plan<br/>reconcile · distil · stamp · archive"]
+    R2 -. findings .-> S6
+    S6 --> M["commit · merge"]
 ```
 
 | # | You run | Conversation | Produces |
 |---|---|---|---|
 | 1 | `/create-master-plan 412` | any | `issue.specs`, `master-plan.md` |
-| 2 | `/decompose-plan docs/plans/GH-412` | the same one is fine | `phases/`, `tasks.md`, `execute-plan.md`, `handoff.md` |
+| 2 | `/decompose-plan docs/plans/active/GH-412` | the same one is fine | `phases/`, `tasks.md`, `execute-plan.md`, `handoff.md` |
 | 2.5 | `/plan-review-prompt` | any | findings you fold back into the plan — **optional** |
 | 3 | paste the Coordinator Prompt | **a fresh one — mandatory** | the code |
 | 4 | `/code-review` | any | findings on the diff |
 | 5 | `/plan-implementation-review` | any | findings on the diff *against the plan* — **optional** |
+| 6 | `/close-master-plan GH-412` | any | `tasks.md` reconciled, `handoff.md` verified, approved rules folded into `.claude/rules/`, folder moved to `docs/plans/closed/GH-412/`, `INDEX.md` updated, and the commit command — printed, never run for you |
 
 Only one transition is load-bearing: **step 3 must start in an empty conversation.** The coordinator ends up holding the master plan, every phase file and every teammate's report at once. Start it in a window that already contains your planning discussion and it hits compaction mid-run — and a coordinator that has forgotten round 1's deviations will cheerfully dispatch round 2 on top of them.
 
@@ -83,13 +85,14 @@ Only one transition is load-bearing: **step 3 must start in an empty conversatio
 
 Once per machine, except the last step.
 
-### 0.1 · The marketplace and the three plugins
+### 0.1 · The marketplace and the four plugins
 
 ```
 /plugin marketplace add necofx/necofx-claude-marketplace
 /plugin install create-master-plan@necofx
 /plugin install decompose-plan@necofx
 /plugin install plan-review@necofx
+/plugin install close-master-plan@necofx
 ```
 
 If the first line fails to clone, the `owner/repo` shorthand is trying SSH. Pass the HTTPS URL instead — `https://github.com/necofx/necofx-claude-marketplace.git` — or export `CLAUDE_CODE_PLUGIN_PREFER_HTTPS=1`.
@@ -174,7 +177,7 @@ Takes `412`, `#412`, or the issue URL. GitHub is the default and uses the `gh` C
 
 ### What it does before it asks you anything
 
-1. Creates `docs/plans/GH-412/`. If that folder already exists with files, it stops and asks — overwrite, merge to `.bak.<timestamp>`, or abort. It will not clobber silently.
+1. Creates `docs/plans/active/GH-412/`. If that folder already exists with files, it stops and asks — overwrite, merge to `.bak.<timestamp>`, or abort. It will not clobber silently.
 2. Fetches the issue with every field and comment, downloads attachments into `attachments/`, follows up to 5 linked items and quotes up to 3 cited documents in full. **A referenced merged PR is the most valuable thing it can find** — its file list is how "this ticket is gap-closure, not a build" gets discovered without grepping blind.
 3. Globs `docs/**/*.md` with no exclusions and no cap, grepping for the ticket key, the component names and the distinctive nouns. Long output here is correct: this is the step that surfaces the internal document nobody remembered.
 4. Writes `issue.specs`. **Before** the interview, deliberately — everything in that file now counts as known, so an interview question the file already answers is a defect you can point at.
@@ -186,7 +189,7 @@ sequenceDiagram
     participant S as create-master-plan
     participant GH as gh CLI · GitHub
     participant D as the repo · docs/ · .codegraph/
-    participant F as docs/plans/GH-412/
+    participant F as docs/plans/active/GH-412/
 
     U->>S: /create-master-plan 412
     S->>F: create the folder — ask first if it exists
@@ -227,7 +230,7 @@ sequenceDiagram
 **Labels:** payments, api, needs-migration
 **Source:** github
 **Fetched at:** 2026-08-14 09:12
-**Plan folder:** `docs/plans/GH-412/`
+**Plan folder:** `docs/plans/active/GH-412/`
 
 ## 1. Description
 
@@ -345,7 +348,7 @@ Before writing, it shows you the outline and offers: *looks good — write it* /
 # Part 2 · From plan to phases and rounds
 
 ```
-/decompose-plan docs/plans/GH-412
+/decompose-plan docs/plans/active/GH-412
 ```
 
 It reads the plan end to end, lists every deliverable, builds the dependency graph, and groups the work into phases. A **good phase** is single-focus — an "and" in the goal means split it — independently verifiable, 30 minutes to 3 hours, and names every cross-phase dependency instead of implying it.
@@ -358,9 +361,9 @@ sequenceDiagram
     participant M as master-plan.md
     participant CG as codegraph
     participant I as skill inventory
-    participant F as docs/plans/GH-412/
+    participant F as docs/plans/active/GH-412/
 
-    U->>S: /decompose-plan docs/plans/GH-412
+    U->>S: /decompose-plan docs/plans/active/GH-412
     S->>M: read end to end
     M-->>S: deliverables, layers, validation gates
     S->>S: dependency graph → atomic phases → topological sort into rounds
@@ -511,7 +514,7 @@ Risk: Medium — touches the payment state machine. Effort: ~2 h.
 ## Documents to Read
 
 - `docs/architecture/payments-state-machine.md` — the CAPTURED → REFUNDED transition this phase makes non-terminal
-- `docs/plans/GH-412/issue.specs` § 4 — GH-388 added the idempotency filter Phase 04 will rely on
+- `docs/plans/active/GH-412/issue.specs` § 4 — GH-388 added the idempotency filter Phase 04 will rely on
 - `.claude/rules/java.md` — the project's error-handling and logging conventions
 
 ## Pre-execution check
@@ -589,8 +592,8 @@ It prints the prompt, offers to save it, and then offers to run it. Both offers 
 
 ```sh
 codex exec --sandbox read-only ${CODEX_MODEL:+-m "$CODEX_MODEL"} \
-  -o docs/plans/GH-412/codex-review-all.md \
-  < docs/plans/GH-412/codex-review-prompt-all.md
+  -o docs/plans/active/GH-412/codex-review-all.md \
+  < docs/plans/active/GH-412/codex-review-prompt-all.md
 ```
 
 `--sandbox read-only` is the point — a review must not touch what it judges — and `-o` captures the report verbatim, so you read the reviewer's own words.
@@ -610,7 +613,7 @@ sequenceDiagram
 
     U->>S: /plan-review-prompt  (or /plan-implementation-review)
     S->>U: which folder? what am I reviewing?
-    U-->>S: docs/plans/GH-412 · all
+    U-->>S: docs/plans/active/GH-412 · all
     S->>F: read the plan / the phases / tasks.md
     S->>R: harvest every cited path — and verify it exists
     R-->>S: real paths, plus one that is missing → flagged as a finding
@@ -653,7 +656,7 @@ A decomposition review of GH-412 would be looking for exactly the kind of thing 
 
 ````bash
 awk '/^## Coordinator Prompt/{f=1;next} f&&/^```/{c++;next} f&&c==1' \
-  docs/plans/GH-412/execute-plan.md | clip.exe      # pbcopy on macOS, xclip -sel c on Linux
+  docs/plans/active/GH-412/execute-plan.md | clip.exe      # pbcopy on macOS, xclip -sel c on Linux
 ````
 
 Then the coordinator loops. Round 1 of GH-412 looks like this:
@@ -825,7 +828,7 @@ gitGraph
 **Commit the plan folder before you execute, on its own commit.** This is the highest-leverage habit in the whole flow, and it costs one command:
 
 ```sh
-git add docs/plans/GH-412 && git commit -m "GH-412: plan"
+git add docs/plans/active/GH-412 && git commit -m "GH-412: plan"
 ```
 
 Three things fall out of it. The implementation diff stops containing the plan, so it reads as code. `/plan-implementation-review` against `HEAD` sees exactly the changeset that implements the plan, not the plan plus the changeset. And if a review sends you back to sharpen the plan, that revision is its own commit and you can see what changed about the intent.
@@ -874,7 +877,7 @@ sequenceDiagram
 
     U->>H: paste the Coordinator Prompt
     H->>W: the whole run happens here — code, tasks.md, handoff.md
-    Note over W: docs/plans/GH-412/ lives INSIDE the worktree
+    Note over W: docs/plans/active/GH-412/ lives INSIDE the worktree
 
     H->>U: end-of-round batched commit command
     U->>W: run it — the commit lands on feature/gh-412
@@ -889,7 +892,7 @@ sequenceDiagram
 
 Three things that bite people, in the order they bite:
 
-- **The plan folder moves.** `docs/plans/GH-412/` lives inside the worktree. Every path you type — for `/decompose-plan`, for the review skills — is relative to *that* directory. A review run from your main checkout will read a `tasks.md` that has not moved since decomposition.
+- **The plan folder moves.** `docs/plans/active/GH-412/` lives inside the worktree. Every path you type — for `/decompose-plan`, for the review skills — is relative to *that* directory. A review run from your main checkout will read a `tasks.md` that has not moved since decomposition.
 - **The directory is disposable; the branch is not.** `ExitWorktree` removes the directory. If the work is not committed and the branch not pushed, it is gone. Commit before you exit.
 - **Finishing is a separate decision.** A worktree does not merge itself. Say what you want: *"merge `feature/gh-412` into `main` and delete the worktree"*, or *"push the branch and open a PR, leave `main` alone"*. `superpowers:finishing-a-development-branch` exists for exactly this and will ask if you do not say.
 
@@ -933,8 +936,8 @@ Then it builds a prompt from two sources of truth at once: the plan (what was *p
 
 ```sh
 codex exec --sandbox read-only ${CODEX_MODEL:+-m "$CODEX_MODEL"} \
-  -o docs/plans/GH-412/codex-implementation-review.md \
-  < docs/plans/GH-412/codex-implementation-review-prompt.md
+  -o docs/plans/active/GH-412/codex-implementation-review.md \
+  < docs/plans/active/GH-412/codex-implementation-review-prompt.md
 ```
 
 Leave the tree alone while it runs — the reviewer regenerates the diff live, so edits mid-run produce findings against code that no longer exists.
@@ -958,11 +961,15 @@ The status-honesty check is the one worth the run on its own: the reviewer compa
 
 # Part 5 · Close out
 
-After the last round:
+After the last round, three things need to be true before the branch is done. They used to be a
+manual checklist. Now they are what `/close-master-plan` asks for and does:
 
-1. **Real commit SHAs and the final summary in `tasks.md`** — replace every `(pending batch)`.
-2. **Every section of `handoff.md` filled**, especially **deviations from the plan**. That is where reviewers spend their attention and where unexamined assumptions hide.
-3. **Anything durable folded into `.claude/rules/`** rather than left in a plan folder nobody reopens. If this run taught you that the team wants domain errors instead of exceptions, that belongs in a rule file, not in `docs/plans/GH-412/`.
+1. **Real commit SHAs and a final summary in `tasks.md`** — replacing every `(pending batch)`.
+2. **Every section of `handoff.md` verified filled**, especially **deviations from the plan**. That
+   is where reviewers spend their attention and where unexamined assumptions hide.
+3. **Anything durable folded into `.claude/rules/`** rather than left in a plan folder nobody
+   reopens. If this run taught you that the team wants domain errors instead of exceptions, that
+   belongs in a rule file, not in `docs/plans/active/GH-412/`.
 
 ```markdown
 ## Deviations from the plan
@@ -976,6 +983,90 @@ After the last round:
   Cheap, and it would have caught the naming mismatch above.
 ```
 
+That block is `handoff.md`'s own deviations section, filled the way Part 3 described. `/close-master-plan`
+doesn't write it for you — it reads it, and Step 5 of the skill stops to ask whether an *empty*
+version of that section really means "executed exactly as planned" rather than "nobody filled it in".
+
+```
+/close-master-plan GH-412
+```
+
+With no argument at all it looks in `docs/plans/active/`, finds the one folder sitting there, and
+proposes it — confirm, or name the folder yourself. What it asks you for, in order: whether the
+tree is clean (it checks; a dirty tree stops the run before anything else happens), the plan's
+status (`completed`, `abandoned`, or `superseded by <TICKET-ID>` — nothing else, because there is no
+`merged` status: the PR hasn't merged yet at the point this runs), a phase-to-commit mapping it
+proposes and you correct, fills for any placeholder it finds still sitting in `handoff.md`, and —
+one at a time, never bundled — approval for every candidate rule it offers to distil into
+`.claude/rules/`. What it prints, at the end: the plan folder `git mv`'d to
+`docs/plans/closed/GH-412/`, an updated `INDEX.md` row, and the exact commit command. It never runs
+that command for you.
+
+---
+
+# Part 6 · Closing GH-412
+
+Run this **after** both reviews, not instead of either — `/close-master-plan` is the last step in
+the pack, not a substitute for `/code-review` or `/plan-implementation-review`. GH-412 has both
+behind it: the diff review from Part 4, and the optional plan-conformance review that came back
+clean apart from the naming mismatch Phase 03's deviation note already explains.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as You
+    participant S as /close-master-plan
+    participant F as docs/plans/active/GH-412/
+    participant R as .claude/rules/
+
+    U->>S: /close-master-plan
+    S->>F: read tasks.md, handoff.md, master-plan.md
+    S-->>U: proposed phase to commit mapping
+    U-->>S: confirmed
+    S->>F: SHAs, Final Summary, filled handoff
+    S-->>U: candidate rules, one at a time
+    U-->>S: approve or decline each
+    S->>R: write only what was approved
+    S->>F: stamp STATUS on the three files
+    S->>F: git mv to docs/plans/closed/GH-412/
+    S-->>U: the commit command, and stop
+    Note over U,R: the skill never commits and never touches the worktree
+```
+
+**Preflight is unforgiving: a dirty tree stops it.** GH-412's branch already carries the four round
+commits and the review-fix commit from Part 4. If a stray edit is sitting in the working tree — an
+autosave, an interrupted `git add` — the skill refuses to fold it into the close commit. That commit
+is meant to contain exactly the close: the reconciled `tasks.md`, the stamped headers, the moved
+folder. Nothing else. Confirmed clean, GH-412 gets status `completed` — six phases finished, the
+deviations section above is genuinely filled rather than genuinely empty, and PR `#77` has both
+reviews attached but has not merged. That is exactly why `completed` describes the *plan's* outcome
+and not the PR's: GitHub hasn't decided the PR's fate yet.
+
+**If GH-412 had been abandoned instead** — finance shelves partial refunds after round 2 — the
+skill still closes it, but on `feature/gh-412-partial-refunds`, because that is the only place
+`docs/plans/active/GH-412/` exists right now. Closing then prints two commands, not one: the close
+commit, and `git switch main && git cherry-pick <that-commit>` — because a commit sitting on a
+branch about to be deleted is not durable, and deleting the branch would take the archive with it.
+Expect the cherry-pick to hit a rename/delete conflict: the plan folder never existed on `main`, so
+there is no pre-image for Git to rename from. `git add` the reported paths and
+`git cherry-pick --continue` — expected, not a failure.
+
+**Once `#77` merges, forget the SHAs in `tasks.md`.** If it merges as a squash — one commit standing
+in for all four round commits and the review fixes — every SHA `/close-master-plan` wrote into the
+`Commits` column stops existing on `main`'s history the moment that squash lands. That is not a bug
+in the reconciliation: `Final Summary` already says the SHAs are feature-branch commits. **The PR
+number is the durable pointer** — `#77` still resolves on GitHub after the squash; the SHAs it once
+named do not.
+
+**There is no reopen.** If GH-412 closes `completed` and a bug later traces to a phase everyone
+missed, there is no `/close-master-plan --reopen`. The fix is `git revert` on the close commit, or by
+hand: `git mv docs/plans/closed/GH-412 docs/plans/active/GH-412`, strip the
+`<!-- STATUS: ... -->` header from each stamped file, and delete GH-412's row from `INDEX.md`.
+Nothing automates it, because an honest reopen would have to reverse three different kinds of change
+at once — a `.claude/rules/` edit already approved as a standalone improvement, whichever header the
+stamp replaced, and a `tasks.md` reconciliation built by hand — and none of those undoes cleanly on
+its own.
+
 ---
 
 ## Command cheat sheet
@@ -986,22 +1077,24 @@ After the last round:
 /plugin install create-master-plan@necofx
 /plugin install decompose-plan@necofx
 /plugin install plan-review@necofx
+/plugin install close-master-plan@necofx
 /plugin marketplace add anthropics/claude-plugins-official
 /plugin install superpowers@claude-plugins-official
 /plugin marketplace add wshobson/agents
-/plugin install jvm-languages@claude-code-workflows      # + the bundles your stack needs
-codegraph init                                            # optional, in the repo root
+/plugin install jvm-languages@claude-code-workflows                # + the bundles your stack needs
+codegraph init                                                     # optional, in the repo root
 
 # per ticket
-git switch -c feature/gh-412-partial-refunds              # one branch per ticket, before step 1
-/create-master-plan 412                                   # → issue.specs, master-plan.md
-/decompose-plan docs/plans/GH-412                         # → phases/, tasks.md, execute-plan.md
-/plan-review-prompt                                       # optional — review the plan first
-git add docs/plans/GH-412 && git commit -m "GH-412: plan" # commit the plan BEFORE executing
+git switch -c feature/gh-412-partial-refunds                       # one branch per ticket, before step 1
+/create-master-plan 412                                            # → issue.specs, master-plan.md
+/decompose-plan docs/plans/active/GH-412                           # → phases/, tasks.md, execute-plan.md
+/plan-review-prompt                                                # optional — review the plan first
+git add docs/plans/active/GH-412 && git commit -m "GH-412: plan"   # commit the plan BEFORE executing
 awk '/^## Coordinator Prompt/{f=1;next} f&&/^```/{c++;next} f&&c==1' \
-  docs/plans/GH-412/execute-plan.md                       # paste into a FRESH conversation
-/code-review                                              # the diff on its own merits
-/plan-implementation-review                               # optional — the diff against the plan
+  docs/plans/active/GH-412/execute-plan.md                         # paste into a FRESH conversation
+/code-review                                                       # the diff on its own merits
+/plan-implementation-review                                        # optional — the diff against the plan
+/close-master-plan GH-412                                          # reconcile, distil, stamp, archive to closed/
 
 # updates
 /plugin marketplace update necofx

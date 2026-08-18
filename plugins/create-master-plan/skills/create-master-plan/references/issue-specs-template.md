@@ -2,7 +2,7 @@
 
 Every `issue.specs` produced by the `create-master-plan` skill MUST use this 9-section structure, in this order, even when a section is empty (use `_(none)_` placeholders).
 
-Sections 10+ (Interview Notes, Plan) are appended later by Steps 7–8 of the parent skill. Do NOT write them in Step 6.
+Section 9 (Interview Notes) is appended later by Step 7 of the parent skill; the master plan is a separate file (`master-plan.md`) written in Step 8. Do NOT write either in Step 6.
 
 ---
 
@@ -20,7 +20,7 @@ Sections 10+ (Interview Notes, Plan) are appended later by Steps 7–8 of the pa
 **Parent:** {epic / tracking issue + title, or `_(none)_`}  
 **Source:** {github | jira | linear | file | free-form}  
 **Fetched at:** {YYYY-MM-DD HH:MM}  
-**Plan folder:** `docs/plans/{TICKET-ID}/`
+**Plan folder:** `<plans-root>/active/{TICKET-ID}/` (or the flat legacy path on fallback — see `references/plan-layout.md`)
 
 ---
 
@@ -79,11 +79,19 @@ Sections 10+ (Interview Notes, Plan) are appended later by Steps 7–8 of the pa
 
 ## 7. Related local docs
 
-{Exhaustive list from Step 5 of the parent skill — every `docs/**/*.md` file that contains the ticket id OR any component name. May be long; do NOT truncate. Format:}
+{Exhaustive list from Step 5 of the parent skill — every `docs/**/*.md` file outside `<plans-root>/closed/` (that is, everywhere else under `docs/`, including `<plans-root>/active/`) that contains the ticket id OR any component name. May be long; do NOT truncate. Format:}
 
 - `{relative-path-from-project-root}` — matched: `{term1}`, `{term2}` — excerpt: `{one line around first match}`
 
 {If none: `_(no related local docs found)_`}
+
+### Closed plans
+
+{Matches from Step 5 that landed under `<plans-root>/closed/` — collapsed to one line per matching plan folder, however many files inside it matched. No excerpt. Status and closed date are read from that folder's `master-plan.md` header per `references/plan-layout.md`; if that file is missing or carries no header, use `unknown` for status and `unknown` for the closed date — never skip the folder. Kept separate from the full entries above. Format:}
+
+- {TICKET-ID} · {status} · closed {YYYY-MM-DD} — matched: {term1}, {term2}
+
+{If none: `_(no matches under closed/)_`}
 
 ## 8. Context Gaps
 

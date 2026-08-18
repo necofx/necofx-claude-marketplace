@@ -111,7 +111,7 @@ Skills load at session start.
 This is step 2 of five. Nothing is passed between the steps by hand — **the plan folder is the handoff.** Every skill reads and writes the same directory, so "giving the next step the plan" is just naming that folder again.
 
 ```
-docs/plans/GH-412/          ← name this folder at every step
+docs/plans/active/GH-412/          ← name this folder at every step
 ├── issue.specs             written by create-master-plan
 ├── master-plan.md          written by create-master-plan   ← input to this plugin
 ├── phases/PHASE-NN-*.md    written by decompose-plan
@@ -123,7 +123,7 @@ docs/plans/GH-412/          ← name this folder at every step
 | # | You run | Where | Produces |
 |---|---|---|---|
 | 1 | `/create-master-plan 412` | any conversation | `issue.specs`, `master-plan.md` |
-| 2 | `/decompose-plan docs/plans/GH-412` | same conversation is fine | `phases/`, `tasks.md`, `execute-plan.md`, `handoff.md` |
+| 2 | `/decompose-plan docs/plans/active/GH-412` | same conversation is fine | `phases/`, `tasks.md`, `execute-plan.md`, `handoff.md` |
 | 2.5 | `/plan-review-prompt` → paste output into Codex | any conversation | findings you fold back into the plan |
 | 3 | paste the Coordinator Prompt (below) | **a fresh conversation — mandatory** | the code, plus `tasks.md` and `handoff.md` filled in |
 | 4 | `/plan-implementation-review` → paste output into Codex | any conversation | findings on what actually landed |
@@ -135,7 +135,7 @@ Step 2.5 is the cheap review and the one people skip. It reviews the plan *befor
 ### 1. Decompose
 
 ```
-/decompose-plan docs/plans/GH-412
+/decompose-plan docs/plans/active/GH-412
 ```
 
 Point it at a folder that already contains a master plan — it looks for `MASTER_PLAN.md`, `master-plan.md`, `PLAN.md`, `plan.md`, or the single `*.md` if exactly one exists, and asks if that is ambiguous. Everything it writes lands in that same folder. If `phases/` already exists and is non-empty, it asks before overwriting.
@@ -169,7 +169,7 @@ So: open the file, select everything *between* the two ``` fences under `## Coor
 
 ````bash
 awk '/^## Coordinator Prompt/{f=1;next} f&&/^```/{c++;next} f&&c==1' \
-  docs/plans/GH-412/execute-plan.md
+  docs/plans/active/GH-412/execute-plan.md
 ````
 
 Append `| clip.exe` on WSL, `| pbcopy` on macOS, or `| xclip -sel c` on Linux to skip the scrolling. Paste it as your very first message — nothing before it, no "here's the plan" preamble.

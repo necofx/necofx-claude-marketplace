@@ -20,6 +20,11 @@
       "name": "plan-review",
       "source": "./plugins/plan-review",
       "description": "Steps 4-5 of a plan-first multi-agent workflow, packaged from its author's own files: generate a self-contained review prompt for a fresh external reviewer — either of the plan before it is built, or of the real changeset against the plan afterwards — and optionally run it through the Codex CLI."
+    },
+    {
+      "name": "close-master-plan",
+      "source": "./plugins/close-master-plan",
+      "description": "Step 6 of a plan-first multi-agent workflow: reconcile tasks.md with the real commits, verify handoff.md is complete, distil the run's durable lessons into .claude/rules/, stamp the plan's outcome and archive it under docs/plans/closed/, then print the commit and stop."
     }
   ]
 }

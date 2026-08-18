@@ -118,8 +118,8 @@ Say yes to both and you never leave the session. The command it runs, and the on
 
 ```sh
 codex exec --sandbox read-only ${CODEX_MODEL:+-m "$CODEX_MODEL"} \
-  -o docs/plans/GH-412/codex-review-all.md \
-  < docs/plans/GH-412/codex-review-prompt-all.md
+  -o docs/plans/active/GH-412/codex-review-all.md \
+  < docs/plans/active/GH-412/codex-review-prompt-all.md
 ```
 
 Both offers are opt-in: decline either one and you still have the prompt, which is the deliverable. See [How the review is run](#how-the-review-is-run) for why those flags.
@@ -166,8 +166,8 @@ Same shape as Tutorial A: the prompt is printed inline, offered as `<folder>/cod
 
 ```sh
 codex exec --sandbox read-only ${CODEX_MODEL:+-m "$CODEX_MODEL"} \
-  -o docs/plans/GH-412/codex-implementation-review.md \
-  < docs/plans/GH-412/codex-implementation-review-prompt.md
+  -o docs/plans/active/GH-412/codex-implementation-review.md \
+  < docs/plans/active/GH-412/codex-implementation-review-prompt.md
 ```
 
 This is the run where **leaving the tree alone matters**: the prompt tells the reviewer to regenerate the diff live rather than trust the embedded snapshot, so anything you change while it works shifts the ground under it. Start the run, then go do something outside the repo.

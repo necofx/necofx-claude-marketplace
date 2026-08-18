@@ -51,29 +51,32 @@ claude plugin list               # which plugins are installed and enabled
 
 | Plugin | What it does | Version | Docs |
 |---|---|---|---|
-| `create-master-plan` | Step 1: pulls a ticket — **GitHub by default**, Jira/Linear/free-form as adapter profiles — with its links, cited documents and attachments, scans the repo's docs, detects the stack, interviews you over a coverage matrix, and writes `issue.specs` + `master-plan.md`. | 0.3.3 | [README](plugins/create-master-plan/README.md) |
-| `decompose-plan` | Step 2: turns that plan into atomic phases grouped into parallel rounds, file-conflict checked and skill-matched, emitting `phases/`, `tasks.md`, `execute-plan.md` and `handoff.md`. | 0.3.4 | [README](plugins/decompose-plan/README.md) |
-| `plan-review` | Steps 4–5, optional: generates a self-contained review prompt for a fresh external reviewer — of the plan before it is built, or of the real changeset against the plan afterwards — and offers to run it through the Codex CLI for you. | 0.3.1 | [README](plugins/plan-review/README.md) |
+| `create-master-plan` | Step 1: pulls a ticket — **GitHub by default**, Jira/Linear/free-form as adapter profiles — with its links, cited documents and attachments, scans the repo's docs, detects the stack, interviews you over a coverage matrix, and writes `issue.specs` + `master-plan.md`. | 0.4.0 | [README](plugins/create-master-plan/README.md) |
+| `decompose-plan` | Step 2: turns that plan into atomic phases grouped into parallel rounds, file-conflict checked and skill-matched, emitting `phases/`, `tasks.md`, `execute-plan.md` and `handoff.md`. | 0.3.6 | [README](plugins/decompose-plan/README.md) |
+| `plan-review` | Steps 4–5, optional: generates a self-contained review prompt for a fresh external reviewer — of the plan before it is built, or of the real changeset against the plan afterwards — and offers to run it through the Codex CLI for you. | 0.3.3 | [README](plugins/plan-review/README.md) |
+| `close-master-plan` | Step 6: reconciles `tasks.md` with the real commits, verifies `handoff.md` is complete, distils the run's durable lessons into `.claude/rules/`, stamps the plan's outcome and archives it under `docs/plans/closed/`, then prints the commit and stops. | 0.1.0 | [README](plugins/close-master-plan/README.md) |
 
 Install instructions specific to a plugin, its tutorial, its limits and its troubleshooting live in that plugin's own README. Nothing about a plugin is duplicated here.
 
-### The three are one workflow
+### The four are one workflow
 
-They are separate plugins because they run in separate conversations — that is not packaging convenience, it is the design. Step 1 ends with a large research payload in context; step 3's coordinator needs a near-empty window for the whole plan plus every agent's report. Every step's output is a file, so no step depends on a previous conversation still being open.
+They are separate plugins because they run in separate conversations — that is not packaging convenience, it is the design. Step 1 ends with a large research payload in context; step 3's coordinator needs a near-empty window for the whole plan plus every agent's report; step 6 needs only the finished diff and the plan it was built from. Every step's output is a file, so no step depends on a previous conversation still being open.
 
 ```
-/create-master-plan 412            →  issue.specs · master-plan.md
+/create-master-plan 412                   →  issue.specs · master-plan.md
         ↓  new conversation
-/decompose-plan docs/plans/GH-412  →  phases/ · tasks.md · execute-plan.md · handoff.md
+/decompose-plan docs/plans/active/GH-412  →  phases/ · tasks.md · execute-plan.md · handoff.md
         ↓  new conversation
-paste the Coordinator Prompt       →  one agent per phase, a round at a time
+paste the Coordinator Prompt              →  one agent per phase, a round at a time
         ↓  optional
-/plan-implementation-review        →  a prompt for a fresh reviewer, code against plan
+/plan-implementation-review               →  a prompt for a fresh reviewer, code against plan
+        ↓
+/close-master-plan                        →  reconciled · distilled · archived to closed/
 ```
 
-The last step is a genuine second opinion, not a gate: the workflow closes without it, and `/code-review` inside Claude Code covers the ordinary case.
+The peer-review step is a genuine second opinion, not a gate: the workflow closes without it, and `/code-review` inside Claude Code covers the ordinary case. `/close-master-plan` always runs last, whether or not that optional review happened.
 
-**One worked example joins all three:** [`docs/master-plan-pack/TUTORIAL.md`](docs/master-plan-pack/TUTORIAL.md) follows a single ticket across a polyglot repository — Java, Python, PostgreSQL, Docker, Kubernetes — from adding the marketplace to the final review, with the real artifacts each step produces. Read it once before your first run; the per-plugin READMEs are the reference you come back to.
+**One worked example joins all four:** [`docs/master-plan-pack/TUTORIAL.md`](docs/master-plan-pack/TUTORIAL.md) follows a single ticket across a polyglot repository — Java, Python, PostgreSQL, Docker, Kubernetes — from adding the marketplace to the final review, with the real artifacts each step produces. Read it once before your first run; the per-plugin READMEs are the reference you come back to.
 
 You can start at step 2: hand-write `issue.specs` and `master-plan.md` and nothing downstream knows the difference. Only step 1 touches a tracker at all, and it reads GitHub by default — Jira, Linear and pasted text are adapter profiles, selected by a detection ladder.
 
