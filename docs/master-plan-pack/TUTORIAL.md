@@ -32,7 +32,7 @@ That is the shape this workflow is for. A one-file change does not need it.
 
 ---
 
-## The five steps, and what carries state between them
+## The six steps, and what carries state between them
 
 Nothing is handed between steps by hand. **The plan folder is the handoff** — every step reads and writes `docs/plans/active/GH-412/`, so "give the next step the plan" is just naming that folder again.
 
@@ -62,8 +62,9 @@ flowchart TD
 
     C1 --> S4["4 · /code-review<br/>the diff on its own merits"]
     C1 -. optional .-> R2["5 · plan-implementation-review<br/>the diff against the plan"]
-    S4 --> M["commit · merge"]
-    R2 -. findings .-> M
+    S4 --> S6["6 · close-master-plan<br/>reconcile · distil · stamp · archive"]
+    R2 -. findings .-> S6
+    S6 --> M["commit · merge"]
 ```
 
 | # | You run | Conversation | Produces |
@@ -74,6 +75,7 @@ flowchart TD
 | 3 | paste the Coordinator Prompt | **a fresh one — mandatory** | the code |
 | 4 | `/code-review` | any | findings on the diff |
 | 5 | `/plan-implementation-review` | any | findings on the diff *against the plan* — **optional** |
+| 6 | `/close-master-plan GH-412` | any | `tasks.md` reconciled, `handoff.md` verified, approved rules folded into `.claude/rules/`, folder moved to `docs/plans/closed/GH-412/`, `INDEX.md` updated, and the commit command — printed, never run for you |
 
 Only one transition is load-bearing: **step 3 must start in an empty conversation.** The coordinator ends up holding the master plan, every phase file and every teammate's report at once. Start it in a window that already contains your planning discussion and it hits compaction mid-run — and a coordinator that has forgotten round 1's deviations will cheerfully dispatch round 2 on top of them.
 
