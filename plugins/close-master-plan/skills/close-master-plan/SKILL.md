@@ -138,3 +138,12 @@ Skip this step if Step 4a applied.
    failure — a plan can be executed exactly as written — but confirm out loud with the user that it
    is genuinely empty rather than simply unfilled, because it is the section reviewers spend the
    most attention on.
+
+### Step 6 — Distil durable lessons
+
+Read `handoff.md`'s deviations and `tasks.md`'s `Decisions` and `Coordination Notes`, apply
+`references/rule-distillation.md`'s durability test to each, and present every candidate that
+passes as a concrete diff against the matching `.claude/rules/*.md` file. Approve candidates one at
+a time — never write anything without an explicit yes on that specific candidate. Zero approved
+candidates is a valid, common outcome; say so rather than manufacturing a rule. Record the list of
+files actually written (after approval) — Step 7 needs it for the header's `rules:` field.
