@@ -1,6 +1,6 @@
 {
   "name": "create-master-plan",
-  "version": "0.3.4",
+  "version": "0.4.0",
   "description": "Step 1 of a plan-first multi-agent workflow: pull a ticket from GitHub by default (Jira, Linear and free-form text are adapter profiles), follow its linked items, cited documents and attachments, scan the repo's docs/ exhaustively, detect the tech stack, interview you over a coverage matrix, and write issue.specs plus master-plan.md.",
   "author": {
     "name": "necofx",

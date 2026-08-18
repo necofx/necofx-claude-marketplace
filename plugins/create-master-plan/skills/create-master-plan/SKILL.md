@@ -7,7 +7,7 @@ description: This skill should be used to bootstrap a brand-new master implement
 
 ## Overview
 
-Bootstraps a brand-new master implementation plan from a ticket. Pulls together everything that lives outside the implementer's head — the ticket body, comments, linked issues, cited documents, attachments, related local documentation — and turns it into two artifacts in `docs/plans/<TICKET-ID>/`:
+Bootstraps a brand-new master implementation plan from a ticket. Pulls together everything that lives outside the implementer's head — the ticket body, comments, linked issues, cited documents, attachments, related local documentation — and turns it into two artifacts in `<plans-root>/active/<TICKET-ID>/` (see `references/plan-layout.md`):
 
 1. **`issue.specs`** — every piece of fetched context, in a stable 9-section structure.
 2. **`master-plan.md`** — the writing-plans-shaped plan, produced AFTER an embedded interview fills the gaps in `issue.specs`.
@@ -39,9 +39,10 @@ The full ladder — including what to do when two adapters both match — is in 
 ### Step 1 — Folder setup (overwrite-aware)
 
 1. Resolve the project root (nearest ancestor of CWD with a `.git` directory).
-2. Compute `<plan-folder> = <project-root>/docs/plans/<TICKET-ID>/`. If the project declares a different plans directory in its `CLAUDE.md`, use that instead.
-3. If `<plan-folder>` does NOT exist, create it (with `attachments/` lazily created on first write in Step 3).
-4. If `<plan-folder>` exists and contains files, list them and use `AskUserQuestion` with three options:
+2. Resolve `<plans-root>` per `references/plan-layout.md`, then compute `<plan-folder> = <plans-root>/active/<TICKET-ID>/`.
+3. If `<plans-root>/<TICKET-ID>/` already exists in the flat legacy layout (no `active/`/`closed/` split), use it unchanged as `<plan-folder>` instead of creating one under `active/`, and note in the Step 9 run summary that the project is on the old layout. This skill never migrates a project from the flat layout to `active/`/`closed/` on its own — that migration, if it happens, is `close-master-plan`'s business.
+4. If `<plan-folder>` does NOT exist, create it (with `attachments/` lazily created on first write in Step 3).
+5. If `<plan-folder>` exists and contains files, list them and use `AskUserQuestion` with three options:
    - **Overwrite specific files** (skill picks: typically `issue.specs` and `master-plan.md`; preserves `attachments/`, `phases/`, `tasks.md`, etc.)
    - **Merge** (skill renames `issue.specs` → `issue.specs.bak.<timestamp>` and `master-plan.md` → `master-plan.md.bak.<timestamp>`, then writes fresh files alongside)
    - **Abort** (skill stops with a one-paragraph message describing what's already there)
@@ -96,14 +97,18 @@ Per the user's explicit direction, no folder is excluded and no cap is applied b
    - The ticket id itself (e.g. `GH-412`, `ACME-1234`).
    - Every component name from Step 2.
    - The most distinctive nouns from the ticket summary (skip stopwords).
-2. Glob `<project-root>/docs/**/*.md` (no exclusion, no depth cap).
+2. Glob `<project-root>/docs/**/*.md` (no exclusion, no depth cap). This glob stays exactly this — nothing here is skipped.
 3. For each candidate file, run a case-insensitive Grep for any of the haystack terms. A single hit is enough.
-4. For each match, record:
-   - relative path from `<project-root>`
-   - which terms matched
-   - a 1–2 line excerpt around the first match (use Grep with `-B 1 -A 1`)
+4. Partition matches by where they land, then record each partition differently:
+   - **Outside `<plans-root>`, and under `<plans-root>/active/`** — reported in full, exactly as before:
+     - relative path from `<project-root>`
+     - which terms matched
+     - a 1–2 line excerpt around the first match (use Grep with `-B 1 -A 1`)
+   - **Under `<plans-root>/closed/`** — collapsed to one line per matching plan folder, no excerpt, however many files inside that folder matched. Do NOT record a path/terms/excerpt per file; instead, once per matching `closed/<ID>/` folder, read that folder's `master-plan.md` header per `references/plan-layout.md`'s "authoritative carrier" rule and record:
+     `- <ID> · <status> · closed <date> — matched: <term1>, <term2>`
+     If `master-plan.md` is missing, or present but carries no header, use status `unknown` and `closed unknown` for the date field (neither can be read) — never skip the folder.
 
-This produces a potentially long list — that's expected. Section 8 of `issue.specs` is allowed to grow.
+This produces a potentially long list — that's expected. Section 7 of `issue.specs` is allowed to grow. Collapsing `closed/` matches reduces what the dossier *carries*, not what the scan *reads*: the glob in step 2 still traverses every markdown file under `docs/`, `closed/` included, and step 3 still greps every one of them. Only how much of a `closed/` match gets quoted into `issue.specs` changes — the cost being cut is context, not coverage.
 
 ### Step 5.5 — Detect the project's tech stack(s)
 
@@ -119,19 +124,19 @@ Record the resolved stack(s). This drives the master-plan template's Pre-flight 
 
 ### Step 6 — Write `issue.specs`
 
-Write `<plan-folder>/issue.specs` using the structure defined in `references/issue-specs-template.md`. Sections, in order:
+Write `<plan-folder>/issue.specs` using the structure defined in `references/issue-specs-template.md`. Sections, in order (the Header is unnumbered; the numbering below matches `issue-specs-template.md` exactly):
 
-1. **Header** — `<TICKET-ID>` · title · state · type · priority · author · assignee · source (`github` | `jira` | `linear` | `file` | `free-form`) · fetched-at (`YYYY-MM-DD HH:MM`) · plan folder path
-2. **Description** — the raw ticket body (markdown), verbatim
-3. **Acceptance Criteria** — extracted verbatim if the description has an `Acceptance Criteria` / `AC` / `Definition of Done` / `DoD` heading (case-insensitive); otherwise `_(none in the ticket — to be filled by the interview)_`
-4. **Comments** — chronological, each as a sub-heading `### <author> · <YYYY-MM-DD HH:MM>` followed by the body
-5. **Linked issues** — each as `### <id> · <relation> · <state>` then a 1-paragraph summary. On GitHub, a merged PR's file list belongs here.
-6. **Referenced documents** — each as `### <title>` with the URL and either the full body (if <2k chars) or the most relevant excerpt
-7. **Attachments** — table: filename · size · mime · local path · download status
-8. **Related local docs** — for every match from Step 5: `- <relative-path> — matched: <terms> — excerpt: <one line>`. May be long; do not truncate.
-9. **Context Gaps** — every failure recorded earlier (attachment download fails, document auth fails, fields the source cannot supply, an empty thread on free-form input). Empty bullet `_(none)_` if all clean.
+- **Header** — `<TICKET-ID>` · title · state · type · priority · author · assignee · source (`github` | `jira` | `linear` | `file` | `free-form`) · fetched-at (`YYYY-MM-DD HH:MM`) · plan folder path
+1. **Description** — the raw ticket body (markdown), verbatim
+2. **Acceptance Criteria** — extracted verbatim if the description has an `Acceptance Criteria` / `AC` / `Definition of Done` / `DoD` heading (case-insensitive); otherwise `_(none in the ticket — to be filled by the interview)_`
+3. **Comments** — chronological, each as a sub-heading `### <author> · <YYYY-MM-DD HH:MM>` followed by the body
+4. **Linked issues** — each as `### <id> · <relation> · <state>` then a 1-paragraph summary. On GitHub, a merged PR's file list belongs here.
+5. **Referenced documents** — each as `### <title>` with the URL and either the full body (if <2k chars) or the most relevant excerpt
+6. **Attachments** — table: filename · size · mime · local path · download status
+7. **Related local docs** — for every match from Step 5 outside `<plans-root>/closed/`: `- <relative-path> — matched: <terms> — excerpt: <one line>`. May be long; do not truncate. Followed by a `### Closed plans` subsection holding the collapsed one-line-per-folder entries from Step 5's `closed/` partition, kept separate from the full entries above it.
+8. **Context Gaps** — every failure recorded earlier (attachment download fails, document auth fails, fields the source cannot supply, an empty thread on free-form input). Empty bullet `_(none)_` if all clean.
 
-Do NOT write Sections 10+ — those are interview notes and the plan, written in later steps.
+Do NOT write Section 9+ — Interview Notes (Section 9) is appended in Step 7, and the master plan is a separate file (`master-plan.md`) written in Step 8.
 
 ### Step 7 — Run the embedded interview
 
@@ -153,7 +158,7 @@ Before writing, invoke (in this order):
 1. `Skill(skill="superpowers:using-superpowers")` — establishes skill discipline.
 2. `Skill(skill="superpowers:writing-plans")` — informs the master-plan structure.
 
-Then write `<plan-folder>/master-plan.md` using the skeleton from `references/master-plan-template.md`. Fill every section based on the combined content of `issue.specs` (Sections 1–9), the captured Interview Notes (`## Interview Notes` at the bottom of `issue.specs`), and the resolved tech-stack(s) from Step 5.5.
+Then write `<plan-folder>/master-plan.md` using the skeleton from `references/master-plan-template.md`. Fill every section based on the combined content of `issue.specs` (the Header and Sections 1–8), the captured Interview Notes (`## Interview Notes` at the bottom of `issue.specs`), and the resolved tech-stack(s) from Step 5.5.
 
 Substitute the stack-specific build commands, test commands, owner-skill recommendations, and coding-rules file paths from the matching profile(s) in `references/tech-stack-profiles.md`. For mixed-stack projects, the master plan's Tech Stack section lists each stack with the layer it covers; each layer's Implementation Outline references the right profile.
 
@@ -174,7 +179,7 @@ Reply to the user with, in this order:
 3. Context fetched: the adapter used, 1 ticket + N linked items + M documents.
 4. Related local docs: count + the top 5 by match strength.
 5. Interview rounds: count of `AskUserQuestion` calls.
-6. Suggested next step: `Run /decompose-plan docs/plans/<TICKET-ID>` to phase out the master plan into atomic phases.
+6. Suggested next step: `Run /decompose-plan <plans-root>/active/<TICKET-ID>` to phase out the master plan into atomic phases.
 
 Do NOT begin decomposition in this conversation — that's the job of the `decompose-plan` skill, which the user invokes separately.
 

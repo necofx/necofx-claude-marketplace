@@ -1,6 +1,6 @@
 # Using a tracker other than GitHub
 
-**You do not need this file to use the plugin.** GitHub is the default and needs no configuration: the skill uses the `gh` CLI, derives the plan id as `GH-<issue number>`, and writes to `docs/plans/GH-<number>/`. If that is your setup, install it and run it.
+**You do not need this file to use the plugin.** GitHub is the default and needs no configuration: the skill uses the `gh` CLI, derives the plan id as `GH-<issue number>`, and writes to `docs/plans/active/GH-<number>/`. If that is your setup, install it and run it.
 
 This file is for the three cases where the default is not what you want.
 
@@ -49,17 +49,22 @@ The skill resolves the actual MCP tool names at runtime rather than assuming a p
 
 **If both the Atlassian and Linear MCPs are connected**, a bare `ENG-204` matches both adapters and the skill will ask which one you meant. The `CLAUDE.md` line above is what stops it having to ask every time.
 
-## A different plans directory
+## A different plans root
 
-The default is `docs/plans/<TICKET-ID>/`. To change it:
+The knob is a **root**, not a per-ticket pattern: the default is `docs/plans/`, and plans live under `<root>/active/<TICKET-ID>/` while they're being worked and move to `<root>/closed/<TICKET-ID>/` once `close-master-plan` archives them. To point at a different root:
 
 ```markdown
 ## Planning workflow
 
-Plan folders live under `docs/prps/<TICKET-ID>/`, one per ticket.
+Plan folders live under `docs/prps/`, one subfolder per ticket.
 ```
 
-Whatever you choose, `decompose-plan` and `plan-review` must be given the same value — all three address the same folder, and a mismatch means the second step cannot find what the first one wrote.
+`references/plan-layout.md` resolves this declaration with one of two rules — `create-master-plan` and `close-master-plan` each carry a copy of that file and apply the rule identically:
+
+- If the declaration names a directory (as above), that directory is the root: plans go in `docs/prps/active/<TICKET-ID>/`.
+- If the declaration still ends in `<TICKET-ID>` (the pre-0.4.0 wording, e.g. `docs/prps/<TICKET-ID>/`), strip that final segment and treat the remainder as the root. This keeps existing `CLAUDE.md` declarations working without an edit.
+
+Whatever value you choose, `create-master-plan`, `decompose-plan`, `plan-review` and `close-master-plan` must all be given the same one — all four address the same root, and a mismatch means one plugin cannot find what another wrote.
 
 ## No tracker at all
 

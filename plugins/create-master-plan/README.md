@@ -38,7 +38,7 @@ The skill invokes `superpowers:using-superpowers` and `superpowers:writing-plans
 
 ### 3. Nothing to configure — unless you are not on GitHub
 
-**GitHub is the default and needs no setup.** The skill uses the `gh` CLI (make sure `gh auth status` is happy), derives the plan id as `GH-<issue number>`, and writes to `docs/plans/GH-<number>/`.
+**GitHub is the default and needs no setup.** The skill uses the `gh` CLI (make sure `gh auth status` is happy), derives the plan id as `GH-<issue number>`, and writes to `docs/plans/active/GH-<number>/`.
 
 Using **Jira** or **Linear**, or want a different plans directory? That is what [`config.md`](config.md) is for — one MCP server and three lines in your repository's `CLAUDE.md`. No tracker at all is also fine: paste the requirement and the skill takes its free-form adapter.
 
@@ -75,7 +75,7 @@ Takes a GitHub issue number (`412`, `#412`, or an issue URL), or a tracker key l
 
 ### What happens, and where you are involved
 
-**It creates the plan folder** at `docs/plans/GH-412/`. If that folder already exists with files in it, the skill stops and asks: overwrite the specific files (typically `issue.specs` and `master-plan.md`, preserving `attachments/` and any `phases/`), merge (renaming the old ones to `.bak.<timestamp>`), or abort. It will not silently clobber anything.
+**It creates the plan folder** at `docs/plans/active/GH-412/`. If that folder already exists with files in it, the skill stops and asks: overwrite the specific files (typically `issue.specs` and `master-plan.md`, preserving `attachments/` and any `phases/`), merge (renaming the old ones to `.bak.<timestamp>`), or abort. It will not silently clobber anything. (If your project is still on the flat legacy layout — a plan folder directly under `docs/plans/<TICKET-ID>/`, no `active/`/`closed/` split — the skill uses that folder unchanged and says so; it never migrates a project onto the new layout on its own.)
 
 **It picks the source adapter and fetches.** GitHub unless the detection ladder says otherwise; where two adapters match, it asks rather than guessing. Then: the issue with all fields and comments, attachments downloaded into `attachments/` (and images actually read), up to 5 linked items in priority order (parent epic → blocks → relates-to → sub-tasks), up to 3 cited documents quoted in full rather than linked. **A referenced merged PR is the most valuable thing it finds** — its file list is how "this ticket is gap-closure, not a build" gets discovered without grepping blind. Then it globs `docs/**/*.md` with **no exclusions and no cap** and greps every file for the ticket key, the component names and the distinctive nouns from the summary. Long output here is expected and correct — this is the step that surfaces the internal document nobody remembered.
 
@@ -108,7 +108,7 @@ Answer properly. Everything downstream derives from this — a vague requirement
 ### Next
 
 ```
-/decompose-plan docs/plans/GH-412
+/decompose-plan docs/plans/active/GH-412
 ```
 
 **In a new conversation.** This one ends with the full ticket thread, every doc excerpt and the whole interview in context, and the next step needs the room. The plan is on disk; this conversation has no further value.
