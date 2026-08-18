@@ -29,9 +29,11 @@ Follow these steps in order.
 2. Resolve `<plans-root>` per `references/plan-layout.md`.
 3. Check `<plans-root>/closed/<ID>/` first. If it exists, this plan is already closed: read the
    header from its `master-plan.md` (per `references/plan-layout.md`'s header format), report the
-   status and closed date to the user, and **stop** — do not proceed to any later step. This is what
-   keeps closing idempotent: a second run against an already-closed plan neither re-stamps nor
-   re-moves anything nor duplicates its `INDEX.md` row.
+   status and closed date to the user, and **stop** — do not proceed to any later step. If
+   `master-plan.md` is missing, or present but carries no header, report status `unknown` and stop
+   instead — per `plan-layout.md`'s "authoritative carrier" section, never skip a folder just
+   because it can't be read. This is what keeps closing idempotent: a second run against an
+   already-closed plan neither re-stamps nor re-moves anything nor duplicates its `INDEX.md` row.
 4. Otherwise look for `<plans-root>/active/<ID>/`. If it is not there, fall back to the flat
    `<plans-root>/<ID>/`. **Record which layout was found** — Step 8 needs it to know which `git mv`
    to run.
@@ -200,17 +202,23 @@ Two situations need different handling:
   tracked rename.
 - **Destination already exists**: stop and list what's there, following the overwrite-aware pattern
   `create-master-plan`'s Step 1 uses for its own folder collision — surface the conflict and let the
-  user decide, never silently clobber an existing `closed/<ID>/`.
+  user decide, never silently clobber an existing `closed/<ID>/`. Stop-and-list is the whole
+  response here, not `create-master-plan`'s three-option menu: there is no useful "merge" target
+  once a plan is already closed, the way there is for a fresh plan draft being re-run.
 
 Once the move is staged, create or update `<plans-root>/INDEX.md` per `references/index-template.md`
 — create the file if this is the first close, otherwise insert the new row newest-first.
 
 ### Step 9 — Report and stop
 
-For `completed` and `superseded`, everything this run touched — the reconciled `tasks.md`, the
-verified `handoff.md`, the rules edits approved in Step 6, the stamped headers, the moved folder,
-and the updated `INDEX.md` — gets staged together at this single point, not staged incrementally as
-each earlier step happened. Print:
+By this point two different things have already happened to the plan folder's content, and it's
+worth being precise about which: Step 8's `git mv` already staged the move itself, and along with
+it whatever was on disk at that moment — the reconciled `tasks.md` and the headers Step 7 stamped,
+since both were written before Step 8 ran. What is *not* yet staged is the `.claude/rules/` edits
+Step 6 wrote (that step only ever writes to disk, it never stages) and the `INDEX.md` Step 8 just
+created or updated (also disk-only until now). For `completed` and `superseded`, this step's
+`git add` is what stages those two — re-adding the already-staged plan-folder paths alongside them
+is a harmless no-op. Print:
 
 ```sh
 git add docs/plans .claude/rules && git commit -m "GH-412: close plan"
