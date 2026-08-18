@@ -92,3 +92,49 @@ preserve. The close still happens here, on this branch, because the plan folder'
 lives on this branch right now — there is nowhere else to make the change. But make clear that
 Step 9 will print a two-part sequence rather than a single commit, and that the close is not
 durable until that second part runs.
+
+### Step 4 — Reconcile `tasks.md`
+
+If the plan folder has no `tasks.md`, skip this step and Step 5 — go to Step 4a instead.
+
+1. Read `tasks.md`'s phase table and Detailed Progress entries alongside the commit list Step 2
+   produced.
+2. Build the best phase-to-commit mapping you can from the Detailed Progress entries and the commit
+   subjects, **present it as a table, and have the user correct it.** Do not derive it silently:
+   `tasks-template.md` requires the coordinator to replace `(pending batch)` with SHAs and to note
+   which phases a batch covered, but it imposes **no commit-message format**, and the tutorial
+   presents one-commit-per-round as what the coordinator *proposes*, not a contract. Rows the user
+   cannot place stay `(pending batch)` rather than being guessed.
+3. Once the user confirms (or corrects) the mapping, apply it: replace `(pending batch)` in each
+   confirmed row's `Commits` column with the short SHA(s), comma-separated.
+4. Fill `Finished` with a timestamp on any `completed` row that is missing one.
+5. Fill the `PR` column if the user has a PR number or URL to supply; leave `—` otherwise.
+6. Write `Final Summary`, ending with the standing caveat: **the SHAs are feature-branch commits;
+   if this PR is squash-merged they will not exist on the default branch, and the PR number is the
+   durable pointer.**
+7. Update `**Last updated:**` to today's date.
+
+Then stop and ask. If any phase is still `pending`, `in_progress`, or `blocked`, the plan cannot be
+stamped `completed` as-is: either mark that phase `dropped` and add a justification line under
+`Decisions` — `tasks-template.md`'s own mechanism for recording this — or stop the close here so
+the user can go finish the phase first.
+
+### Step 4a — No `tasks.md`
+
+If the plan folder has no `tasks.md`, the plan was never decomposed into phases. Skip Step 4 and
+Step 5 entirely — there is nothing to reconcile against commits and nothing to verify. Restrict the
+status established in Step 3 to `abandoned` or `superseded by <TICKET-ID>`: a plan that was never
+phased out cannot be `completed`. Step 7 stamps only the files that exist in the folder, so a
+plan folder with only `master-plan.md` is stamped there and nowhere else.
+
+### Step 5 — Verify `handoff.md`
+
+Skip this step if Step 4a applied.
+
+1. Scan `handoff.md` for everything listed in `references/closeout-checklist.md`.
+2. Report every hit found — quote the surrounding line so the user can see it in context — and
+   offer to fill them together before continuing.
+3. Check the "Key deviations from the original plan" section. An empty section is not an automatic
+   failure — a plan can be executed exactly as written — but confirm out loud with the user that it
+   is genuinely empty rather than simply unfilled, because it is the section reviewers spend the
+   most attention on.
