@@ -179,8 +179,8 @@
     <strong>Close out the plan</strong>
     <span class="cmd">/close-master-plan GH-412</span>
     <p class="out">Reconciles <code>tasks.md</code> against the real commits, verifies
-      <code>handoff.md</code>, distils durable lessons into <code>.claude/rules/</code>, stamps
-      the outcome, archives the folder under <code>docs/plans/closed/</code></p>
+      <code>handoff.md</code>, stamps the outcome, archives the folder under
+      <code>docs/plans/closed/</code></p>
   </div></div>
 </div>
 
@@ -357,8 +357,7 @@ recommend at score >= 3, cap 4 per phase</code></pre>
   either. It closes the loop: real commit SHAs and a final summary in <code>tasks.md</code>,
   every section of <code>handoff.md</code> filled — especially <strong>deviations from the
   plan</strong>, which is where reviewers spend their attention and where unexamined assumptions
-  hide — and anything durable folded into <code>.claude/rules/</code> rather than left in a plan
-  folder nobody reopens. It never changes git state itself: every step that touches files stages
+  hide. It never changes git state itself: every step that touches files stages
   them, and the skill stops short of committing, pushing, switching branches, or touching the
   worktree it's running inside. You run every command it prints.</p>
 
@@ -371,7 +370,6 @@ recommend at score >= 3, cap 4 per phase</code></pre>
     <tr><td>Establish status</td><td>Asks which of exactly three outcomes applies: <code>completed</code>, <code>abandoned</code>, or <code>superseded by &lt;TICKET-ID&gt;</code>. There is no <code>merged</code> status — the PR hasn't merged at this point, that's the whole reason the archive travels inside it.</td></tr>
     <tr><td>Reconcile <code>tasks.md</code></td><td>Builds a phase-to-commit mapping from <code>tasks.md</code> and the branch's real commit log and has you correct it — never guesses a row it can't place. A plan with any phase still <code>pending</code>, <code>in_progress</code> or <code>blocked</code> can't be stamped <code>completed</code> until you drop it or go finish it.</td></tr>
     <tr><td>Verify <code>handoff.md</code></td><td>Scans it against a checklist and confirms out loud that an empty "Key deviations from the original plan" section is genuinely empty, not just unfilled.</td></tr>
-    <tr><td>Distil</td><td>Reads the deviations and <code>tasks.md</code>'s decisions, applies a durability test, and proposes concrete diffs against <code>.claude/rules/*.md</code> — approved one candidate at a time. Zero approved candidates is a normal outcome, not a failure.</td></tr>
     <tr><td>Stamp and archive</td><td>Writes a one-line <code>&lt;!-- STATUS: ... --&gt;</code> header into <code>master-plan.md</code> (and <code>tasks.md</code> / <code>handoff.md</code> when present), <code>git mv</code>s the folder to <code>docs/plans/closed/&lt;ID&gt;/</code>, and creates or updates <code>docs/plans/INDEX.md</code>.</td></tr>
   </tbody>
 </table>
@@ -409,7 +407,7 @@ recommend at score >= 3, cap 4 per phase</code></pre>
     <tr><td><code>tasks.md</code></td><td>2 + everyone, reconciled at 6</td><td>Single source of truth for status: phase table, rounds graph, conflict matrix, update protocol, per-phase progress, blockers, decisions, final summary.</td></tr>
     <tr><td><code>execute-plan.md</code></td><td>2</td><td>Round list + the coordinator prompt you paste.</td></tr>
     <tr><td><code>handoff.md</code></td><td>2, filled at 6</td><td>What shipped, reading order, files touched, deviations, TODOs, how to verify, review focus.</td></tr>
-    <tr><td><code>&lt;!-- STATUS: ... --&gt;</code> header</td><td>6</td><td>Stamped into <code>master-plan.md</code>, and into <code>tasks.md</code> / <code>handoff.md</code> when they exist: outcome, closed date, PR, rules distilled.</td></tr>
+    <tr><td><code>&lt;!-- STATUS: ... --&gt;</code> header</td><td>6</td><td>Stamped into <code>master-plan.md</code>, and into <code>tasks.md</code> / <code>handoff.md</code> when they exist: outcome, closed date, PR.</td></tr>
     <tr><td><code>docs/plans/INDEX.md</code></td><td>6</td><td>One row per closed plan, newest first — the only file step 6 writes outside the plan's own folder.</td></tr>
   </tbody>
 </table>
@@ -426,7 +424,7 @@ recommend at score >= 3, cap 4 per phase</code></pre>
     <tr><td><code>decompose-plan</code></td><td>Plan → phases, rounds, orchestrator. 6 references: master-plan format, phase / tasks / execute-plan / handoff templates, skill-matching heuristics, tech-stack profiles.</td></tr>
     <tr><td><code>plan-review-prompt</code> <span class="pill">optional</span></td><td>Plan → review prompt for an external reviewer, before it is built. 2 references: master-plan review, decomposed-plan review.</td></tr>
     <tr><td><code>plan-implementation-review</code> <span class="pill">optional</span></td><td>Plan + changeset → review prompt for an external reviewer, afterwards. 1 reference: implementation review.</td></tr>
-    <tr><td><code>close-master-plan</code></td><td>Plan → reconciled, verified, distilled and archived. 4 references: plan layout, closeout checklist, rule-distillation heuristics, INDEX template.</td></tr>
+    <tr><td><code>close-master-plan</code></td><td>Plan → reconciled, verified and archived. 3 references: plan layout, closeout checklist, INDEX template.</td></tr>
   </tbody>
 </table>
 </div>

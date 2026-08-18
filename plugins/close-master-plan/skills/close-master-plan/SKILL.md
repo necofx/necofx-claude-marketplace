@@ -1,6 +1,6 @@
 ---
 name: close-master-plan
-description: This skill should be used to close out a master implementation plan after its work has landed on a branch — reconciling tasks.md against the real commits, verifying handoff.md is complete, distilling durable lessons into .claude/rules/, stamping the plan's outcome, and archiving the folder under docs/plans/closed/. It never changes git state itself beyond printing the exact commands to run. Trigger when the user invokes `/close-master-plan`, with or without a `<plan-folder>` or `<TICKET-ID>` argument, or asks to "close the plan for GH-412", "archive this plan", "wrap up GH-412".
+description: This skill should be used to close out a master implementation plan after its work has landed on a branch — reconciling tasks.md against the real commits, verifying handoff.md is complete, stamping the plan's outcome, and archiving the folder under docs/plans/closed/. It never changes git state itself beyond printing the exact commands to run. Trigger when the user invokes `/close-master-plan`, with or without a `<plan-folder>` or `<TICKET-ID>` argument, or asks to "close the plan for GH-412", "archive this plan", "wrap up GH-412".
 ---
 
 # Close Master Plan
@@ -35,7 +35,7 @@ Follow these steps in order.
    because it can't be read. This is what keeps closing idempotent: a second run against an
    already-closed plan neither re-stamps nor re-moves anything nor duplicates its `INDEX.md` row.
 4. Otherwise look for `<plans-root>/active/<ID>/`. If it is not there, fall back to the flat
-   `<plans-root>/<ID>/`. **Record which layout was found** — Step 8 needs it to know which `git mv`
+   `<plans-root>/<ID>/`. **Record which layout was found** — Step 7 needs it to know which `git mv`
    to run.
 5. Require `master-plan.md` to exist in whichever folder was found. Without it this is not a plan
    folder — stop and say so.
@@ -97,7 +97,7 @@ about to be deleted unmerged, so a close commit made on it is discarded along wi
 `closed/<ID>/` never reaches the default branch — losing exactly the record this skill exists to
 preserve. The close still happens here, on this branch, because the plan folder's content only
 lives on this branch right now — there is nowhere else to make the change. But make clear that
-Step 9 will print a two-part sequence rather than a single commit, and that the close is not
+Step 8 will print a two-part sequence rather than a single commit, and that the close is not
 durable until that second part runs.
 
 ### Step 4 — Reconcile `tasks.md`
@@ -131,7 +131,7 @@ the user can go finish the phase first.
 If the plan folder has no `tasks.md`, the plan was never decomposed into phases. Skip Step 4 and
 Step 5 entirely — there is nothing to reconcile against commits and nothing to verify. Restrict the
 status established in Step 3 to `abandoned` or `superseded by <TICKET-ID>`: a plan that was never
-phased out cannot be `completed`. Step 7 stamps only the files that exist in the folder, so a
+phased out cannot be `completed`. Step 6 stamps only the files that exist in the folder, so a
 plan folder with only `master-plan.md` is stamped there and nowhere else.
 
 ### Step 5 — Verify `handoff.md`
@@ -146,16 +146,7 @@ Skip this step if Step 4a applied.
    is genuinely empty rather than simply unfilled, because it is the section reviewers spend the
    most attention on.
 
-### Step 6 — Distil durable lessons
-
-Read `handoff.md`'s deviations and `tasks.md`'s `Decisions` and `Coordination Notes`, apply
-`references/rule-distillation.md`'s durability test to each, and present every candidate that
-passes as a concrete diff against the matching `.claude/rules/*.md` file. Approve candidates one at
-a time — never write anything without an explicit yes on that specific candidate. Zero approved
-candidates is a valid, common outcome; say so rather than manufacturing a rule. Record the list of
-files actually written (after approval) — Step 7 needs it for the header's `rules:` field.
-
-### Step 7 — Stamp
+### Step 6 — Stamp
 
 Write the header — format in `references/plan-layout.md` — into the plan folder's files:
 
@@ -168,15 +159,14 @@ Write the header — format in `references/plan-layout.md` — into the plan fol
   the truth that can drift from it.
 
 Assemble the header from what the earlier steps established: the `status` from Step 3, today's date
-for `closed`, the PR field from whatever the user supplied in Step 4 (or `tasks.md`'s existing `PR`
-column) or `—`, and the `rules:` field from the file list Step 6 recorded, or `—` if it approved
-nothing.
+for `closed`, and the PR field from whatever the user supplied in Step 4 (or `tasks.md`'s existing
+`PR` column) or `—`.
 
 If a file already carries a header — this run is re-stamping after a correction, or a stray header
 survived a hand-edit — **replace it rather than adding a second.** A file must never end up with two
 `<!-- STATUS: ... -->` lines in its first five lines.
 
-### Step 8 — Move and index
+### Step 7 — Move and index
 
 The source is whichever layout Step 1 recorded; the destination is always
 `<plans-root>/closed/<ID>/`. Ensure `<plans-root>/closed/` exists first (`mkdir -p`) — `git mv`
@@ -209,26 +199,25 @@ Two situations need different handling:
 Once the move is staged, create or update `<plans-root>/INDEX.md` per `references/index-template.md`
 — create the file if this is the first close, otherwise insert the new row newest-first.
 
-### Step 9 — Report and stop
+### Step 8 — Report and stop
 
 By this point two different things have already happened to the plan folder's content, and it's
-worth being precise about which: Step 8's `git mv` already staged the move itself, and along with
-it whatever was on disk at that moment — the reconciled `tasks.md` and the headers Step 7 stamped,
-since both were written before Step 8 ran. What is *not* yet staged is the `.claude/rules/` edits
-Step 6 wrote (that step only ever writes to disk, it never stages) and the `INDEX.md` Step 8 just
-created or updated (also disk-only until now). For `completed` and `superseded`, this step's
-`git add` is what stages those two — re-adding the already-staged plan-folder paths alongside them
+worth being precise about which: Step 7's `git mv` already staged the move itself, and along with
+it whatever was on disk at that moment — the reconciled `tasks.md` and the headers Step 6 stamped,
+since both were written before Step 7 ran. What is *not* yet staged is the `INDEX.md` Step 7 just
+created or updated (disk-only until now). For `completed` and `superseded`, this step's
+`git add` is what stages that — re-adding the already-staged plan-folder paths alongside it
 is a harmless no-op. Print:
 
 ```sh
-git add docs/plans .claude/rules && git commit -m "GH-412: close plan"
+git add docs/plans && git commit -m "GH-412: close plan"
 ```
 
 For `abandoned`, print the same commit **plus** the rescue, both presented as required, not optional
 — Step 3 already warned the user this close only becomes durable once the second command runs:
 
 ```sh
-git add docs/plans .claude/rules && git commit -m "GH-412: close plan (abandoned)"
+git add docs/plans && git commit -m "GH-412: close plan (abandoned)"
 # the branch is being deleted — the archive must also land on the default branch:
 git switch main && git cherry-pick <that-commit>
 ```
@@ -240,7 +229,7 @@ default branch at all, only on the branch being abandoned, so there is no pre-im
 rename from. Resolve by `git add`-ing the reported paths to accept the incoming files, then
 `git cherry-pick --continue`; this is expected, not a sign anything went wrong.
 
-Always stage explicit paths — `docs/plans .claude/rules` — never `git add -A`; the close commit must
+Always stage explicit paths — `docs/plans` — never `git add -A`; the close commit must
 contain the close and nothing else. Point the user at `superpowers:finishing-a-development-branch`
 for merging, pushing, and worktree removal — that is not this skill's job. Close with the same
 statement the Overview opens with: this skill does not commit, push, switch branches, or touch the
@@ -252,10 +241,9 @@ There is no reopen in v0.1.0. Undoing a close is either `git revert` of the clos
 manual reverse: `git mv` the folder back to `active/`, remove the header from each file it was
 stamped into, and delete the row `INDEX.md` gained.
 
-There's no reopen command because a reopen would have to honestly reverse three different kinds of
-change at once: restore a `.claude/rules/*.md` edit the user already approved as a standalone
-improvement (not scoped to this plan — reverting it may take back something unrelated), restore
-whichever header the stamp replaced (only recoverable if that prior header is still visible in git
-history), and undo the `tasks.md` reconciliation the user built by hand in Step 4. Automating that
+There's no reopen command because a reopen would have to honestly reverse two different kinds of
+change at once: restore whichever header the stamp replaced (only recoverable if that prior header
+is still visible in git history), and undo the `tasks.md` reconciliation the user built by hand in
+Step 4. Automating that
 would be claiming a reversibility this skill cannot honestly guarantee — `git revert` or a manual
 fix says exactly what happened, instead of pretending the close never occurred.

@@ -62,7 +62,7 @@ flowchart TD
 
     C1 --> S4["4 · /code-review<br/>the diff on its own merits"]
     C1 -. optional .-> R2["5 · plan-implementation-review<br/>the diff against the plan"]
-    S4 --> S6["6 · close-master-plan<br/>reconcile · distil · stamp · archive"]
+    S4 --> S6["6 · close-master-plan<br/>reconcile · verify · stamp · archive"]
     R2 -. findings .-> S6
     S6 --> M["commit · merge"]
 ```
@@ -75,7 +75,7 @@ flowchart TD
 | 3 | paste the Coordinator Prompt | **a fresh one — mandatory** | the code |
 | 4 | `/code-review` | any | findings on the diff |
 | 5 | `/plan-implementation-review` | any | findings on the diff *against the plan* — **optional** |
-| 6 | `/close-master-plan GH-412` | any | `tasks.md` reconciled, `handoff.md` verified, approved rules folded into `.claude/rules/`, folder moved to `docs/plans/closed/GH-412/`, `INDEX.md` updated, and the commit command — printed, never run for you |
+| 6 | `/close-master-plan GH-412` | any | `tasks.md` reconciled, `handoff.md` verified, folder moved to `docs/plans/closed/GH-412/`, `INDEX.md` updated, and the commit command — printed, never run for you |
 
 Only one transition is load-bearing: **step 3 must start in an empty conversation.** The coordinator ends up holding the master plan, every phase file and every teammate's report at once. Start it in a window that already contains your planning discussion and it hits compaction mid-run — and a coordinator that has forgotten round 1's deviations will cheerfully dispatch round 2 on top of them.
 
@@ -961,15 +961,12 @@ The status-honesty check is the one worth the run on its own: the reviewer compa
 
 # Part 5 · Close out
 
-After the last round, three things need to be true before the branch is done. They used to be a
+After the last round, two things need to be true before the branch is done. They used to be a
 manual checklist. Now they are what `/close-master-plan` asks for and does:
 
 1. **Real commit SHAs and a final summary in `tasks.md`** — replacing every `(pending batch)`.
 2. **Every section of `handoff.md` verified filled**, especially **deviations from the plan**. That
    is where reviewers spend their attention and where unexamined assumptions hide.
-3. **Anything durable folded into `.claude/rules/`** rather than left in a plan folder nobody
-   reopens. If this run taught you that the team wants domain errors instead of exceptions, that
-   belongs in a rule file, not in `docs/plans/active/GH-412/`.
 
 ```markdown
 ## Deviations from the plan
@@ -996,11 +993,9 @@ proposes it — confirm, or name the folder yourself. What it asks you for, in o
 tree is clean (it checks; a dirty tree stops the run before anything else happens), the plan's
 status (`completed`, `abandoned`, or `superseded by <TICKET-ID>` — nothing else, because there is no
 `merged` status: the PR hasn't merged yet at the point this runs), a phase-to-commit mapping it
-proposes and you correct, fills for any placeholder it finds still sitting in `handoff.md`, and —
-one at a time, never bundled — approval for every candidate rule it offers to distil into
-`.claude/rules/`. What it prints, at the end: the plan folder `git mv`'d to
-`docs/plans/closed/GH-412/`, an updated `INDEX.md` row, and the exact commit command. It never runs
-that command for you.
+proposes and you correct, and fills for any placeholder it finds still sitting in `handoff.md`. What
+it prints, at the end: the plan folder `git mv`'d to `docs/plans/closed/GH-412/`, an updated
+`INDEX.md` row, and the exact commit command. It never runs that command for you.
 
 ---
 
@@ -1017,20 +1012,16 @@ sequenceDiagram
     participant U as You
     participant S as /close-master-plan
     participant F as docs/plans/active/GH-412/
-    participant R as .claude/rules/
 
     U->>S: /close-master-plan
     S->>F: read tasks.md, handoff.md, master-plan.md
     S-->>U: proposed phase to commit mapping
     U-->>S: confirmed
     S->>F: SHAs, Final Summary, filled handoff
-    S-->>U: candidate rules, one at a time
-    U-->>S: approve or decline each
-    S->>R: write only what was approved
     S->>F: stamp STATUS on the three files
     S->>F: git mv to docs/plans/closed/GH-412/
     S-->>U: the commit command, and stop
-    Note over U,R: the skill never commits and never touches the worktree
+    Note over U,F: the skill never commits and never touches the worktree
 ```
 
 **Preflight is unforgiving: a dirty tree stops it.** GH-412's branch already carries the four round
@@ -1062,10 +1053,9 @@ named do not.
 missed, there is no `/close-master-plan --reopen`. The fix is `git revert` on the close commit, or by
 hand: `git mv docs/plans/closed/GH-412 docs/plans/active/GH-412`, strip the
 `<!-- STATUS: ... -->` header from each stamped file, and delete GH-412's row from `INDEX.md`.
-Nothing automates it, because an honest reopen would have to reverse three different kinds of change
-at once — a `.claude/rules/` edit already approved as a standalone improvement, whichever header the
-stamp replaced, and a `tasks.md` reconciliation built by hand — and none of those undoes cleanly on
-its own.
+Nothing automates it, because an honest reopen would have to reverse two different kinds of change
+at once — whichever header the stamp replaced, and a `tasks.md` reconciliation built by hand — and
+neither of those undoes cleanly on its own.
 
 ---
 
@@ -1094,7 +1084,7 @@ awk '/^## Coordinator Prompt/{f=1;next} f&&/^```/{c++;next} f&&c==1' \
   docs/plans/active/GH-412/execute-plan.md                         # paste into a FRESH conversation
 /code-review                                                       # the diff on its own merits
 /plan-implementation-review                                        # optional — the diff against the plan
-/close-master-plan GH-412                                          # reconcile, distil, stamp, archive to closed/
+/close-master-plan GH-412                                          # reconcile, stamp, archive to closed/
 
 # updates
 /plugin marketplace update necofx

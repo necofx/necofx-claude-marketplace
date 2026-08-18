@@ -48,7 +48,7 @@ Archived plans carry a status comment in the first five lines of `master-plan.md
 `tasks.md` and `handoff.md` when those exist:
 
 ```markdown
-<!-- STATUS: completed · closed 2026-08-18 · PR #77 · rules: .claude/rules/java.md -->
+<!-- STATUS: completed · closed 2026-08-18 · PR #77 -->
 # GH-412 — Partial refunds
 ```
 
@@ -59,9 +59,8 @@ Fields, in this order, separated by ` · `:
 | status | `completed` \| `abandoned` \| `superseded by <TICKET-ID>` | Describes the **plan**, not the PR |
 | closed | `closed YYYY-MM-DD` | Absolute date, never relative |
 | PR | `PR #<n>` or `PR —` | Whatever the user supplies or `tasks.md` already holds |
-| rules | `rules: <paths>` or `rules: —` | Comma-separated, the files Step 6 wrote to |
 
-When there is no PR number, write `PR —`. When no rules were distilled, write `rules: —`.
+When there is no PR number, write `PR —`.
 
 The header is an HTML comment so it renders as nothing on GitHub while staying greppable, and it
 sits above the H1 so `head -5` finds it without parsing.
@@ -87,10 +86,10 @@ that plan's status as `unknown`. Never skip it.
 ```markdown
 # Closed plans
 
-| Plan | Title | Status | Closed | PR | Rules distilled |
-|---|---|---|---|---|---|
-| GH-412 | Partial refunds | completed | 2026-08-18 | #77 | `.claude/rules/java.md` |
-| GH-388 | Idempotency filter | superseded by GH-412 | 2026-06-02 | #61 | — |
+| Plan | Title | Status | Closed | PR |
+|---|---|---|---|---|
+| GH-412 | Partial refunds | completed | 2026-08-18 | #77 |
+| GH-388 | Idempotency filter | superseded by GH-412 | 2026-06-02 | #61 |
 ```
 
 List entries newest first. Create the file on first close if it does not already exist. It is a

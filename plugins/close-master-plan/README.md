@@ -1,6 +1,6 @@
 # close-master-plan
 
-Step 6 of a plan-first multi-agent workflow: closes out a master implementation plan once its work has landed on a branch. It reconciles `tasks.md` against the real commits, verifies `handoff.md` is complete, distils the run's durable lessons into `.claude/rules/`, stamps the plan's outcome, and archives the folder under `docs/plans/closed/`.
+Step 6 of a plan-first multi-agent workflow: closes out a master implementation plan once its work has landed on a branch. It reconciles `tasks.md` against the real commits, verifies `handoff.md` is complete, stamps the plan's outcome, and archives the folder under `docs/plans/closed/`.
 
 **It never changes git state itself.** Every step that touches files stages them; the skill stops short of committing, pushing, switching branches, or touching the worktree it is running inside. It prints the exact commands, and you run them.
 
@@ -50,10 +50,9 @@ What it does, in order:
 3. **Establish the status**, via `AskUserQuestion`: `completed`, `abandoned`, or `superseded by <TICKET-ID>`. There is no `merged` status — at the point this runs, the PR hasn't merged yet, and the PR number is the durable pointer to that outcome.
 4. **Reconcile `tasks.md`.** Proposes a phase-to-commit mapping built from `tasks.md`'s Detailed Progress entries and the branch's commit subjects, and has you correct it before applying it — commit messages carry no contracted format, so the mapping is never derived silently. Fills in `Finished` timestamps and a `Final Summary`. A plan can't be stamped `completed` while any phase is still `pending`, `in_progress`, or `blocked`; mark it `dropped` with a justification, or finish the phase first. (Skipped entirely if the folder has no `tasks.md` — a plan that was never decomposed can only close as `abandoned` or `superseded`.)
 5. **Verify `handoff.md`.** Scans it for template placeholders left behind, and asks you to confirm out loud that an empty "Key deviations from the original plan" section really is empty — that's the section reviewers read most closely.
-6. **Distil durable lessons.** Reads `handoff.md`'s deviations and `tasks.md`'s `Decisions` and `Coordination Notes`, and presents anything that would still be true on the next ticket, in a different part of the codebase, as a concrete diff against the matching `.claude/rules/*.md` file. Every candidate needs an explicit yes, one at a time — nothing is bundled, and zero rules distilled is a common, valid outcome.
-7. **Stamp.** Writes a one-line status header into `master-plan.md` (and into `tasks.md` / `handoff.md`, if they exist) recording the status, the close date, the PR number, and which rules files got written.
-8. **Move and index.** `git mv`s the folder to `<plans-root>/closed/<ID>/` and updates `<plans-root>/INDEX.md` with a newest-first row. Stops and lists what's there rather than overwriting if the destination already exists.
-9. **Report and stop.** Prints the `git add` + commit command for you to run. For `abandoned`, it prints a second command too — see below.
+6. **Stamp.** Writes a one-line status header into `master-plan.md` (and into `tasks.md` / `handoff.md`, if they exist) recording the status, the close date, and the PR number.
+7. **Move and index.** `git mv`s the folder to `<plans-root>/closed/<ID>/` and updates `<plans-root>/INDEX.md` with a newest-first row. Stops and lists what's there rather than overwriting if the destination already exists.
+8. **Report and stop.** Prints the `git add` + commit command for you to run. For `abandoned`, it prints a second command too — see below.
 
 ---
 
@@ -63,10 +62,10 @@ What it does, in order:
 
 If you close a plan as `abandoned`, the skill still performs the close **on the current branch**, because the plan folder's content only exists there right now. But a commit on a branch that's about to be deleted is not durable — deleting the branch takes the archive with it, which is exactly the record this skill exists to preserve.
 
-So for `abandoned`, Step 9 prints two commands, both required, not one optional follow-up:
+So for `abandoned`, Step 8 prints two commands, both required, not one optional follow-up:
 
 ```sh
-git add docs/plans .claude/rules && git commit -m "GH-412: close plan (abandoned)"
+git add docs/plans && git commit -m "GH-412: close plan (abandoned)"
 # the branch is being deleted — the archive must also land on the default branch:
 git switch main && git cherry-pick <that-commit>
 ```
@@ -77,7 +76,7 @@ Expect the cherry-pick to hit rename/delete conflicts — the plan folder usuall
 
 Closing the wrong plan, or closing with the wrong status, has no dedicated undo command. Use `git revert` on the close commit, or reverse it by hand: `git mv` the folder back to `active/`, strip the header from each file it was stamped into, and delete the row `INDEX.md` gained.
 
-There's no automated reopen because it would have to honestly reverse three different kinds of change at once: a `.claude/rules/` edit you already approved as a standalone improvement (not scoped to this plan), a header that replaced whatever was there before (only recoverable from git history), and a `tasks.md` reconciliation you built by hand. Automating that would claim a reversibility the skill can't actually guarantee — `git revert` or a manual fix says exactly what happened, instead of pretending the close never occurred.
+There's no automated reopen because it would have to honestly reverse two different kinds of change at once: a header that replaced whatever was there before (only recoverable from git history), and a `tasks.md` reconciliation you built by hand. Automating that would claim a reversibility the skill can't actually guarantee — `git revert` or a manual fix says exactly what happened, instead of pretending the close never occurred.
 
 ---
 
@@ -110,7 +109,7 @@ The flat legacy layout — a plan folder directly under `<plans-root>/<TICKET-ID
 | "Working tree not clean" | The close commit must contain only the close. Commit or stash unrelated changes first. |
 | Won't stamp `completed` | A phase is still `pending`, `in_progress`, or `blocked`. Finish it, or mark it `dropped` with a justification under `tasks.md`'s `Decisions`. |
 | "Already closed" and it stops | `<plans-root>/closed/<ID>/` exists. The skill reports the existing status rather than re-closing — this is what makes closing idempotent, not a bug. |
-| Destination already exists at Step 8 | Something is already at `closed/<ID>/`. The skill lists what's there and stops; there's no merge option for an already-closed folder, only your judgment call. |
+| Destination already exists at Step 7 | Something is already at `closed/<ID>/`. The skill lists what's there and stops; there's no merge option for an already-closed folder, only your judgment call. |
 | Base branch is ambiguous | Asked via `AskUserQuestion` rather than guessed — diffing a committed branch against `HEAD` would vacuously find nothing to close. |
 | Warned about running from the wrong checkout | The branch name doesn't reference the ticket id and the plan folder has no history on this branch — the pack's most common mistake is running from the main checkout while the real work is in a worktree. Informational, not a gate. |
 | Plan folder was never committed | `git mv` has nothing to rename from. The skill falls back to a plain `mv` and says so — the move still happens, it just isn't a tracked rename. |
@@ -119,5 +118,5 @@ The flat legacy layout — a plan folder directly under `<plans-root>/<TICKET-ID
 
 - **It never touches git state beyond staging.** No commit, no push, no branch switch, no worktree removal — every command is printed for you to run yourself.
 - **No reopen command.** See [above](#there-is-no-reopen-in-v010).
-- **A plan with no `tasks.md` can only close as `abandoned` or `superseded`.** It was never decomposed into phases, so there's nothing to reconcile against commits or verify in `handoff.md` — rule distillation still runs off `handoff.md` alone, when present.
+- **A plan with no `tasks.md` can only close as `abandoned` or `superseded`.** It was never decomposed into phases, so there's nothing to reconcile against commits or verify in `handoff.md`.
 - **Migrating an existing flat-layout project onto `active/`/`closed/` is manual.** Both this skill and `create-master-plan` keep working with the flat layout indefinitely; nothing forces the move.
