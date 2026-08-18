@@ -4,6 +4,8 @@ Step 6 of a plan-first multi-agent workflow: closes out a master implementation 
 
 **It never changes git state itself.** Every step that touches files stages them; the skill stops short of committing, pushing, switching branches, or touching the worktree it is running inside. It prints the exact commands, and you run them.
 
+`MANUAL.html` in this folder documents the complete six-step workflow this plugin closes out, step 6 in particular.
+
 ## When to run it
 
 After `/code-review` inside Claude Code and the optional `/plan-implementation-review` from [`plan-review`](../plan-review/) — this is the last step in the pack, not a substitute for either review. Run it once the branch's work is actually done (or actually abandoned), before merging or finishing the branch. `superpowers:finishing-a-development-branch` picks up from there: merging, pushing, and worktree removal are not this skill's job.
