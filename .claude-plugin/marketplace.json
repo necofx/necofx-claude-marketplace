@@ -9,7 +9,7 @@
     {
       "name": "create-master-plan",
       "source": "./plugins/create-master-plan",
-      "description": "Step 1 of a plan-first multi-agent workflow: pull a ticket from GitHub by default (Jira, Linear and free-form text are adapter profiles), follow its linked items, cited documents and attachments, scan the repo's docs/ exhaustively, detect the tech stack, interview you over a coverage matrix, and write issue.specs plus master-plan.md."
+      "description": "Step 1 of a plan-first multi-agent workflow: fork a worktree on a feature branch (indexing it with CodeGraph when the repo already is), pull a ticket from GitHub by default (Jira, Linear and free-form text are adapter profiles), follow its linked items, cited documents and attachments, scan the repo's docs/ exhaustively, detect the tech stack, interview you over a coverage matrix, and write issue.specs plus master-plan.md."
     },
     {
       "name": "decompose-plan",
@@ -24,7 +24,7 @@
     {
       "name": "close-master-plan",
       "source": "./plugins/close-master-plan",
-      "description": "Step 6 of a plan-first multi-agent workflow: reconcile tasks.md with the real commits, verify handoff.md is complete, stamp the plan's outcome and archive it under docs/plans/closed/, then print the commit and stop."
+      "description": "Step 6 of a plan-first multi-agent workflow: reconcile tasks.md with the real commits, verify handoff.md is complete, stamp the plan's outcome and archive it under docs/plans/closed/, then push the branch and open the PR; run it again once that PR has merged and it deletes the branch and removes the worktree. It never merges — that stays yours."
     }
   ]
 }

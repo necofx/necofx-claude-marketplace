@@ -62,20 +62,22 @@ flowchart TD
 
     C1 --> S4["4 · /code-review<br/>the diff on its own merits"]
     C1 -. optional .-> R2["5 · plan-implementation-review<br/>the diff against the plan"]
-    S4 --> S6["6 · close-master-plan<br/>reconcile · verify · stamp · archive"]
+    S4 --> S6["6 · close-master-plan<br/>archive · push · open the PR"]
     R2 -. findings .-> S6
-    S6 --> M["commit · merge"]
+    S6 --> M["you merge the PR"]
+    M --> S7["6b · close-master-plan again<br/>delete branch · remove worktree"]
 ```
 
 | # | You run | Conversation | Produces |
 |---|---|---|---|
-| 1 | `/create-master-plan 412` | any | `issue.specs`, `master-plan.md` |
+| 1 | `/create-master-plan 412` | any | a worktree on `feature/gh-412` (plus its own CodeGraph index, if the repo has one), `issue.specs`, `master-plan.md` |
 | 2 | `/decompose-plan docs/plans/active/GH-412` | the same one is fine | `phases/`, `tasks.md`, `execute-plan.md`, `handoff.md` |
 | 2.5 | `/plan-review-prompt` | any | findings you fold back into the plan — **optional** |
 | 3 | paste the Coordinator Prompt | **a fresh one — mandatory** | the code |
 | 4 | `/code-review` | any | findings on the diff |
 | 5 | `/plan-implementation-review` | any | findings on the diff *against the plan* — **optional** |
-| 6 | `/close-master-plan GH-412` | any | `tasks.md` reconciled, `handoff.md` verified, folder moved to `docs/plans/closed/GH-412/`, `INDEX.md` updated, and the commit command — printed, never run for you |
+| 6 | `/close-master-plan GH-412` | any | `tasks.md` reconciled, `handoff.md` verified, folder moved to `docs/plans/closed/GH-412/`, `INDEX.md` updated, branch pushed and the PR opened — then it stops, because the merge is yours |
+| 6b | `/close-master-plan GH-412`, after you merge | any | back on `main`, pulled, branch deleted local and remote, worktree removed |
 
 Only one transition is load-bearing: **step 3 must start in an empty conversation.** The coordinator ends up holding the master plan, every phase file and every teammate's report at once. Start it in a window that already contains your planning discussion and it hits compaction mid-run — and a coordinator that has forgotten round 1's deviations will cheerfully dispatch round 2 on top of them.
 
@@ -749,10 +751,16 @@ This is the part that reads as confusing, and the confusion is real — but it c
 | Mechanism | Comes from | What it decides |
 |---|---|---|
 | **Commit batching** | These plugins | *When* a commit happens: never per phase, always in batches |
-| **Who runs git** | Your project + your instructions | *Whether Claude runs it* or hands you the command |
-| **Worktrees** | Neither of the above — `superpowers:using-git-worktrees` and the harness's own `EnterWorktree` | *Where* the work happens |
+| **Who runs git during execution** | Your project + your instructions | *Whether Claude runs it* or hands you the command, while phases are being built |
+| **The ticket's worktree and branch** | `create-master-plan` at the start, `close-master-plan` at the end | *Where* the work happens, and what happens to it afterwards |
 
-Nothing in `create-master-plan`, `decompose-plan` or `plan-review` mentions worktrees. Not once. If a worktree appears in your run, it came from `superpowers` or from the harness, never from this pack.
+**The pack owns the ticket's git lifecycle end to end.** `create-master-plan` forks into a worktree on a `feature/<id>` branch before it writes anything; `close-master-plan` commits the close, pushes, opens the PR, and — on a second run, after you merge — deletes the branch and removes the worktree. Both apply the same contract, `references/git-lifecycle.md`, carried byte-identically by both plugins.
+
+That is a deliberate reversal. Earlier versions of this pack mentioned worktrees nowhere and printed every git command for you to run; if a worktree appeared, it came from `superpowers` or the harness. The reason for changing it is that a ticket's checkout, its index, its branch and its cleanup are one lifecycle with one obvious shape, and splitting it across three tools left the boring half — *going back to main, deleting the branch, removing the worktree* — undone in most runs.
+
+**One thing the pack still refuses to do: merge.** Everything before the merge is reversible, so the skills do it; everything after it is safe only *because* someone merged, so the merge stays yours. That is also why the close is two runs rather than one.
+
+`decompose-plan` and `plan-review` remain untouched by any of this — they read and write files, and never git.
 
 ### The one rule the plugins do impose
 
@@ -863,38 +871,39 @@ A worktree is a second checkout of the same repository on its own branch, in its
 
 So a worktree buys you one thing: **GH-412 does not touch your main checkout.** You keep working on something else while the run proceeds, and if the whole thing goes wrong you delete a directory.
 
+**You no longer ask for it — `/create-master-plan` does it for you**, before it writes a single file, and `/close-master-plan` takes it away again once the PR merges. The ordering is not cosmetic: the plan folder is written into whichever tree the session is standing in, so a fork that happened afterwards would leave `docs/plans/active/GH-412/` in your main checkout while the worktree never carries it.
+
 ```mermaid
 sequenceDiagram
     autonumber
     participant U as You
-    participant H as Claude · harness
+    participant S as the pack
     participant W as worktree · feature/gh-412
     participant M as your main checkout
 
-    U->>H: work on this ticket in a worktree
-    H->>W: EnterWorktree — new dir, new branch
+    U->>S: /create-master-plan 412
+    S->>W: EnterWorktree, rename branch, codegraph init if the parent is indexed
     Note over W,M: main checkout untouched from here on
+    S->>W: issue.specs, master-plan.md — born inside the worktree
 
-    U->>H: paste the Coordinator Prompt
-    H->>W: the whole run happens here — code, tasks.md, handoff.md
-    Note over W: docs/plans/active/GH-412/ lives INSIDE the worktree
+    U->>S: paste the Coordinator Prompt
+    S->>W: the whole run happens here — code, tasks.md, handoff.md
 
-    H->>U: end-of-round batched commit command
-    U->>W: run it — the commit lands on feature/gh-412
+    U->>S: /close-master-plan GH-412
+    S->>W: commit the close, push, open the PR
+    S-->>U: the PR url — the merge is yours
 
-    U->>H: done — bring it back
-    H->>W: push the branch  (or merge into main)
-    H->>M: ExitWorktree — the directory goes away
-    Note over U,M: the branch survives — the directory does not
+    U->>U: merge the PR
+    U->>S: /close-master-plan GH-412  (again)
+    S->>M: ExitWorktree remove, pull, delete the branch
+    Note over U,M: the archive is on main — the directory and branch are gone
 ```
-
-**How to ask for one:** *"Set up a worktree for GH-412 before we start"* — or state the preference up front and skip the consent question: *"Always use a worktree for ticket work."* The skill honours a preference you have already declared and only asks when you have not.
 
 Three things that bite people, in the order they bite:
 
-- **The plan folder moves.** `docs/plans/active/GH-412/` lives inside the worktree. Every path you type — for `/decompose-plan`, for the review skills — is relative to *that* directory. A review run from your main checkout will read a `tasks.md` that has not moved since decomposition.
-- **The directory is disposable; the branch is not.** `ExitWorktree` removes the directory. If the work is not committed and the branch not pushed, it is gone. Commit before you exit.
-- **Finishing is a separate decision.** A worktree does not merge itself. Say what you want: *"merge `feature/gh-412` into `main` and delete the worktree"*, or *"push the branch and open a PR, leave `main` alone"*. `superpowers:finishing-a-development-branch` exists for exactly this and will ask if you do not say.
+- **The plan folder moves.** `docs/plans/active/GH-412/` lives inside the worktree. Every path you type — for `/decompose-plan`, for the review skills — is relative to *that* directory. A review run from your main checkout will read a `tasks.md` that has not moved since decomposition. This is why step 1's report tells you which worktree you are standing in; read that line.
+- **The directory is disposable; the branch is not.** Removing the worktree removes the directory. If work is not committed and the branch not pushed, it is gone — which is exactly why phase 2 of the close refuses to run while anything is unpushed.
+- **Merging stays yours.** The pack pushes and opens the PR, then stops. Nothing is deleted until `gh` confirms that PR actually merged, and the second `/close-master-plan` run is what checks.
 
 ### The whole thing in four lines
 
@@ -993,9 +1002,19 @@ proposes it — confirm, or name the folder yourself. What it asks you for, in o
 tree is clean (it checks; a dirty tree stops the run before anything else happens), the plan's
 status (`completed`, `abandoned`, or `superseded by <TICKET-ID>` — nothing else, because there is no
 `merged` status: the PR hasn't merged yet at the point this runs), a phase-to-commit mapping it
-proposes and you correct, and fills for any placeholder it finds still sitting in `handoff.md`. What
-it prints, at the end: the plan folder `git mv`'d to `docs/plans/closed/GH-412/`, an updated
-`INDEX.md` row, and the exact commit command. It never runs that command for you.
+proposes and you correct, and fills for any placeholder it finds still sitting in `handoff.md`.
+
+Then it **acts** rather than printing: pushes the branch, opens the PR, stamps the header with that
+PR's number, `git mv`s the folder to `docs/plans/closed/GH-412/`, updates `INDEX.md`, commits and
+pushes. The PR is opened *before* the stamp for a mechanical reason — the header records `PR #77`,
+and that number does not exist until the PR does; opening it first is what avoids a second commit
+just to write the number down, or an amend plus force-push over a branch someone may already have
+fetched.
+
+**And then it stops, because the merge is yours.** Run the same command again after the PR merges
+and it does the other half: back to `main`, pull, delete the branch local and remote, remove the
+worktree. Two runs, not one, because a merge takes anywhere from a minute to a week and nothing
+should be deleted before it has actually happened.
 
 ---
 
@@ -1011,17 +1030,33 @@ sequenceDiagram
     autonumber
     participant U as You
     participant S as /close-master-plan
-    participant F as docs/plans/active/GH-412/
+    participant F as the plan folder
+    participant G as GitHub
 
-    U->>S: /close-master-plan
+    rect rgb(240, 240, 240)
+    Note over U,G: phase 1 — propose
+    U->>S: /close-master-plan GH-412
     S->>F: read tasks.md, handoff.md, master-plan.md
     S-->>U: proposed phase to commit mapping
     U-->>S: confirmed
     S->>F: SHAs, Final Summary, filled handoff
-    S->>F: stamp STATUS on the three files
-    S->>F: git mv to docs/plans/closed/GH-412/
-    S-->>U: the commit command, and stop
-    Note over U,F: the skill never commits and never touches the worktree
+    S->>G: push the branch, open the PR from handoff.md
+    G-->>S: PR #77
+    S->>F: stamp STATUS with PR #77, git mv to closed/
+    S->>G: commit the close, push into the same PR
+    S-->>U: the PR url — and the merge is yours
+    end
+
+    U->>G: merge #77
+
+    rect rgb(240, 240, 240)
+    Note over U,G: phase 2 — clean
+    U->>S: /close-master-plan GH-412
+    S->>G: is #77 merged?
+    G-->>S: MERGED
+    S->>S: remove the worktree, pull main, delete the branch
+    S-->>U: what was cleaned, what was already gone
+    end
 ```
 
 **Preflight is unforgiving: a dirty tree stops it.** GH-412's branch already carries the four round
@@ -1034,9 +1069,11 @@ reviews attached but has not merged. That is exactly why `completed` describes t
 and not the PR's: GitHub hasn't decided the PR's fate yet.
 
 **If GH-412 had been abandoned instead** — finance shelves partial refunds after round 2 — the
-skill still closes it, but on `feature/gh-412-partial-refunds`, because that is the only place
-`docs/plans/active/GH-412/` exists right now. Closing then prints two commands, not one: the close
-commit, and `git switch main && git cherry-pick <that-commit>` — because a commit sitting on a
+skill still closes it, but on `feature/gh-412`, because that is the only place
+`docs/plans/active/GH-412/` exists right now. No PR is opened for a branch about to be deleted, so
+there is no phase 2 either. Closing then runs two commands rather than one — and this is the single
+path in the skill that confirms each one with you first: the close commit, and
+`git switch main && git cherry-pick <that-commit>` — because a commit sitting on a
 branch about to be deleted is not durable, and deleting the branch would take the archive with it.
 Expect the cherry-pick to hit a rename/delete conflict: the plan folder never existed on `main`, so
 there is no pre-image for Git to rename from. `git add` the reported paths and
@@ -1048,6 +1085,14 @@ in for all four round commits and the review fixes — every SHA `/close-master-
 in the reconciliation: `Final Summary` already says the SHAs are feature-branch commits. **The PR
 number is the durable pointer** — `#77` still resolves on GitHub after the squash; the SHAs it once
 named do not.
+
+The same squash is why phase 2's branch deletion looks alarming and isn't. `git branch -d
+feature/gh-412` fails with *"not fully merged"* after a squash, because the branch's commits are not
+literally in `main`'s history — their *content* is, under one new SHA. The skill uses `-D` there,
+but only after `gh` answered `MERGED`, and it says so when it does. And by the time you run phase 2,
+the usual case is that the worktree is already gone: the harness offers to remove it when a session
+ends, and you probably said yes days ago. Every cleanup step checks before acting and reports what
+was already done — **phase 2 never fails because something already happened.**
 
 **There is no reopen.** If GH-412 closes `completed` and a bug later traces to a phase everyone
 missed, there is no `/close-master-plan --reopen`. The fix is `git revert` on the close commit, or by
@@ -1074,9 +1119,8 @@ neither of those undoes cleanly on its own.
 /plugin install jvm-languages@claude-code-workflows                # + the bundles your stack needs
 codegraph init                                                     # optional, in the repo root
 
-# per ticket
-git switch -c feature/gh-412-partial-refunds                       # one branch per ticket, before step 1
-/create-master-plan 412                                            # → issue.specs, master-plan.md
+# per ticket — no `git switch` first: step 1 forks the worktree and branch itself
+/create-master-plan 412                                            # → worktree + feature/gh-412, issue.specs, master-plan.md
 /decompose-plan docs/plans/active/GH-412                           # → phases/, tasks.md, execute-plan.md
 /plan-review-prompt                                                # optional — review the plan first
 git add docs/plans/active/GH-412 && git commit -m "GH-412: plan"   # commit the plan BEFORE executing
@@ -1084,7 +1128,9 @@ awk '/^## Coordinator Prompt/{f=1;next} f&&/^```/{c++;next} f&&c==1' \
   docs/plans/active/GH-412/execute-plan.md                         # paste into a FRESH conversation
 /code-review                                                       # the diff on its own merits
 /plan-implementation-review                                        # optional — the diff against the plan
-/close-master-plan GH-412                                          # reconcile, stamp, archive to closed/
+/close-master-plan GH-412                                          # phase 1: archive, push, open the PR
+#   ... you merge the PR ...
+/close-master-plan GH-412                                          # phase 2: delete branch, remove worktree
 
 # updates
 /plugin marketplace update necofx

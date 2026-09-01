@@ -36,6 +36,24 @@ Follow these steps in order.
 
 The full ladder — including what to do when two adapters both match — is in `references/source-adapters.md`, applied in Step 2. Step 0 only needs enough to name the folder.
 
+### Step 0.5 — Fork into a worktree for this ticket
+
+Apply `references/git-lifecycle.md`'s **creation side** in full. In short: `EnterWorktree` on the
+ticket id, rename the harness's `worktree-<id>` branch to `feature/<id>` before anything is pushed,
+and — only when the parent repository already has a `.codegraph/` directory — start `codegraph init`
+in the background so the index is ready by the time the interview needs it.
+
+**This runs before Step 1, and the ordering is load-bearing.** Step 1 creates the plan folder in
+whatever tree the session is standing in. Fork afterwards and that folder sits in the main checkout
+while the worktree — a clean checkout of the new branch — does not contain it, so every later step
+writes into a tree the branch will never carry. Forking here means `issue.specs`, the interview and
+`master-plan.md` are born inside the worktree.
+
+The reference's escape table applies silently and is never turned into a question: already inside a
+worktree, not a git repository, no `origin`, or a harness that cannot move the session's cwd all
+mean *continue without forking and say so*, not *stop*. A repository with no `.codegraph/` gets no
+index — that standing rule is untouched.
+
 ### Step 1 — Folder setup (overwrite-aware)
 
 1. Resolve the project root (nearest ancestor of CWD with a `.git` directory).
@@ -174,12 +192,14 @@ If `superpowers:writing-plans` is unavailable in the current environment, fall b
 
 Reply to the user with, in this order:
 
-1. The plan folder absolute path.
-2. Files written: `issue.specs` (size), `master-plan.md` (size), attachments downloaded vs skipped (count + names).
-3. Context fetched: the adapter used, 1 ticket + N linked items + M documents.
-4. Related local docs: count + the top 5 by match strength.
-5. Interview rounds: count of `AskUserQuestion` calls.
-6. Suggested next step: `Run /decompose-plan <plans-root>/active/<TICKET-ID>` to phase out the master plan into atomic phases.
+1. **Where the session is standing**: the worktree path and the branch name, or an explicit "not forked" plus the reason from `references/git-lifecycle.md`'s escape table. A session that silently changed directory is the one thing the user must never have to discover for themselves.
+2. **Which CodeGraph index is in play**: a worktree-local one (with its size), the parent repository's (with the caveat that it reflects a different working tree), or none.
+3. The plan folder absolute path.
+4. Files written: `issue.specs` (size), `master-plan.md` (size), attachments downloaded vs skipped (count + names).
+5. Context fetched: the adapter used, 1 ticket + N linked items + M documents.
+6. Related local docs: count + the top 5 by match strength.
+7. Interview rounds: count of `AskUserQuestion` calls.
+8. Suggested next step: `Run /decompose-plan <plans-root>/active/<TICKET-ID>` to phase out the master plan into atomic phases.
 
 Do NOT begin decomposition in this conversation — that's the job of the `decompose-plan` skill, which the user invokes separately.
 
@@ -197,12 +217,15 @@ Profiles for .NET, Blazor, React, Delphi, and Java/JVM (build/test commands, tes
 ### `references/master-plan-template.md`
 The writing-plans-shaped skeleton for `master-plan.md`. Read once at the start of Step 8. Sections: Context, Pre-flight Checklist, Why, Out of scope, Technical Requirements, Implementation Outline, Test Configuration, Validation & Testing, Acceptance Criteria, Success Criteria, Attachments, Related Docs. Stack-specific values come from the matching profile in `tech-stack-profiles.md`.
 
+### `references/git-lifecycle.md`
+The git contract this plugin shares with `close-master-plan`: the four states a ticket passes through (`unforked` → `forked` → `proposed` → `clean`), how each is *derived* from git and `gh` rather than stored, the creation side this skill applies in Step 0.5 (fork, branch rename, CodeGraph policy, escape table), and the two-phase close the other skill applies. Read once at the start of Step 0.5. **Byte-identical to `close-master-plan`'s copy — edit one, copy it to the other.**
+
 ## Notes for the skill operator
 
-- **CodeGraph, when the repo has one.** If a `.codegraph/` directory exists at the repository root, ground the interview (Step 7) with `codegraph_explore` (MCP) or `codegraph explore "<symbols or question>"` (shell) instead of a `Glob`/`Grep`/`Read` loop. One call returns the relevant symbols' verbatim line-numbered source, the call paths between them, and what depends on them — far cheaper in tokens than reading every file a text search matched, and it follows dynamic dispatch that a text search cannot. This does NOT replace Step 5's `docs/**/*.md` scan: CodeGraph indexes code, not prose. If there is no `.codegraph/` directory, use the ordinary tools and do NOT index the repository yourself — that is the user's decision.
+- **CodeGraph, when the repo has one.** If a `.codegraph/` directory exists at the repository root, ground the interview (Step 7) with `codegraph_explore` (MCP) or `codegraph explore "<symbols or question>"` (shell) instead of a `Glob`/`Grep`/`Read` loop. One call returns the relevant symbols' verbatim line-numbered source, the call paths between them, and what depends on them — far cheaper in tokens than reading every file a text search matched, and it follows dynamic dispatch that a text search cannot. This does NOT replace Step 5's `docs/**/*.md` scan: CodeGraph indexes code, not prose. If there is no `.codegraph/` directory, use the ordinary tools and do NOT index the repository yourself — that is the user's decision. **The one exception is Step 0.5's worktree-local index**, and it is an exception precisely because it is not the user's repository being indexed: it is built only when the parent repo already has `.codegraph/` (so the decision was already made), it lives inside the worktree, and it disappears with the worktree when `close-master-plan` cleans up. See `references/git-lifecycle.md`.
 - **MCP tool naming**: server names and tool-name prefixes vary by install, so `references/source-adapters.md` names canonical operations rather than prefixed tool names. Use `ToolSearch` to locate them at runtime; never hardcode a UUID prefix. The GitHub adapter needs no MCP at all — it uses the `gh` CLI.
 - **Read-only intent for every tracker**: this skill never writes to the source (no comments, no transitions, no label edits, no `gh issue edit`). Read-only fetches only, whichever adapter ran.
-- **Git policy is project-dependent**. Some projects make Claude Code read-only for git (e.g. via `.claude/rules/git-workflow.md`); others let teammates commit themselves. Default to read-only when the project has no explicit policy — the user commits the produced files when they choose. Check before the report-back in Step 9.
+- **Git policy is project-dependent — for commits, which this skill still never makes.** Some projects make Claude Code read-only for git (e.g. via `.claude/rules/git-workflow.md`); others let teammates commit themselves. Default to read-only when the project has no explicit policy: the user commits the produced files when they choose. Step 0.5's fork is not a counter-example — creating a worktree and a branch writes no history and touches nothing that already existed, and it is skipped entirely in a repository that a policy or an escape rules out. Committing, pushing and opening the PR happen only in `close-master-plan`, at the end.
 - **No customer data in summaries**: when paraphrasing the ticket for the report-back in Step 9, never include real customer names, identifiers, or credentials.
 - **Skip if a recent plan exists**: when Step 1 finds an existing `master-plan.md` modified within the last 24 hours, mention this in the AskUserQuestion options so the user can choose to bail out without re-fetching everything.
 - **Date format**: always absolute (`YYYY-MM-DD HH:MM`), never relative.

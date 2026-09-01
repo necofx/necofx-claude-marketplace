@@ -10,7 +10,7 @@ Then it writes one file per phase, a shared status board, the coordinator prompt
 
 The only change in this plugin is that the original's `{{TICKET_PREFIX}}` placeholder is gone — plan ids now come from whatever [`create-master-plan`](../create-master-plan/) derived (`GH-412` by default). Nothing else was touched.
 
-`MANUAL.html` in this folder is their manual for the complete five-step workflow, and it explains the reasoning this README only summarises.
+`MANUAL.html` in this folder is their manual for the complete six-step workflow, and it explains the reasoning this README only summarises.
 
 ---
 

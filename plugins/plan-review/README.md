@@ -19,7 +19,7 @@ Reach for it when you want a genuine second opinion — a reviewer that never sa
 
 **The workflow is not ours.** It was designed by someone else, who shared their files directly, and it is published here with their permission. Both skills are their files with one addition of ours: an optional final step that runs the generated prompt through the Codex CLI, rather than leaving you to run it by hand. Nothing else needed adapting — unlike the other two plugins in this workflow, a review prompt does not care which tracker the plan came from.
 
-`MANUAL.html` in this folder is their manual for the complete five-step workflow; these two skills sit at steps 4–5.
+`MANUAL.html` in this folder is their manual for the complete six-step workflow; these two skills sit at steps 4–5.
 
 ---
 

@@ -149,8 +149,9 @@
   <div class="flow-step"><span class="flow-num">1</span><div class="flow-body">
     <strong>Create the master plan</strong>
     <span class="cmd">/create-master-plan 412</span>
-    <p class="out">Fetches the ticket + cited documents + local docs, interviews you on the gaps →
-      <code>issue.specs</code>, <code>master-plan.md</code></p>
+    <p class="out">Forks a worktree on <code>feature/gh-412</code> (with its own CodeGraph index
+      when the repo has one), fetches the ticket + cited documents + local docs, interviews you on
+      the gaps → <code>issue.specs</code>, <code>master-plan.md</code></p>
   </div></div>
   <div class="flow-step"><span class="flow-num">2</span><div class="flow-body">
     <strong>Decompose into rounds</strong>
@@ -180,7 +181,14 @@
     <span class="cmd">/close-master-plan GH-412</span>
     <p class="out">Reconciles <code>tasks.md</code> against the real commits, verifies
       <code>handoff.md</code>, stamps the outcome, archives the folder under
-      <code>docs/plans/closed/</code></p>
+      <code>docs/plans/closed/</code>, pushes the branch and opens the PR</p>
+  </div></div>
+  <div class="flow-step"><span class="flow-num">6b</span><div class="flow-body">
+    <strong>Clean up, after you merge</strong>
+    <span class="cmd">/close-master-plan GH-412</span>
+    <p class="out">The same command again: once <code>gh</code> confirms the PR merged, it removes
+      the worktree, returns to the default branch, pulls, and deletes the branch local and remote.
+      <strong>The merge itself is never automated</strong></p>
   </div></div>
 </div>
 
@@ -191,12 +199,13 @@
 
 <pre><code>/create-master-plan 412</code></pre>
 
-<p>Takes a GitHub issue number by default, or a tracker key or URL. It does four things:</p>
+<p>Takes a GitHub issue number by default, or a tracker key or URL. It does five things:</p>
 
 <div class="tablewrap">
 <table>
   <thead><tr><th>Phase of the step</th><th>What happens</th></tr></thead>
   <tbody>
+    <tr><td>Fork</td><td><code>EnterWorktree</code> on the ticket id, then a rename of the harness's <code>worktree-gh-412</code> branch to <code>feature/gh-412</code>. <strong>Before the plan folder is created, and the ordering is load-bearing:</strong> the folder is written into whichever tree the session stands in, so forking later would strand it in your main checkout. If the parent repository already has a <code>.codegraph/</code> index, the worktree gets its own, built in the background — the one exception to "never index a repository yourself", and a narrow one, since that index lives inside the worktree and dies with it at step 6. Already in a worktree, no git repo, no <code>origin</code>, or a harness that can't move the session: it skips the fork, says so, and carries on.</td></tr>
     <tr><td>Fetch</td><td>The source comes from a detection ladder in <code>references/source-adapters.md</code> — <strong>GitHub by default</strong>, Jira and Linear as profiles, free-form text as the fallback — and every adapter normalises into one record, so no later step knows which one ran. It pulls the issue with all fields, comments and attachments; up to <strong>5 linked items</strong> (parent epic → blocks → relates-to → sub-tasks) and <strong>3 cited documents</strong>, quoted in full rather than linked. On GitHub, a referenced merged PR's file list is the highest-value field in the whole ingestion.</td></tr>
     <tr><td>Scan</td><td><code>docs/**/*.md</code> <em>exhaustively</em> — no directory excluded, no cap — for the ticket key, component names and distinctive nouns. Long output is expected; it surfaces the internal doc nobody remembered.</td></tr>
     <tr><td>Detect stack</td><td>Ticket text → root markers (<code>*.sln</code>, <code>package.json</code>, <code>*.dproj</code>…) → ask. Mixed stacks get a layer-to-stack map. This drives every build command, test framework and rule citation downstream.</td></tr>
@@ -357,42 +366,55 @@ recommend at score >= 3, cap 4 per phase</code></pre>
   either. It closes the loop: real commit SHAs and a final summary in <code>tasks.md</code>,
   every section of <code>handoff.md</code> filled — especially <strong>deviations from the
   plan</strong>, which is where reviewers spend their attention and where unexamined assumptions
-  hide. It never changes git state itself: every step that touches files stages
-  them, and the skill stops short of committing, pushing, switching branches, or touching the
-  worktree it's running inside. You run every command it prints.</p>
+  hide. It runs the git commands rather than printing them — the close commit, the push, the PR,
+  and later the branch and worktree deletion. <strong>The one thing it never does is merge.</strong>
+  Everything before the merge is reversible, so the skill does it for you; everything after it is
+  safe only <em>because</em> a human merged, so the merge stays yours.</p>
+
+<p>That splits the step into <strong>two runs of the same command</strong>, chosen from where the
+  plan folder sits and what <code>gh</code> says about its PR — never from a stored flag:</p>
 
 <div class="tablewrap">
 <table>
   <thead><tr><th>Phase of the step</th><th>What happens</th></tr></thead>
   <tbody>
-    <tr><td>Locate</td><td>Resolves the plan folder from a ticket id or a bare invocation. Checks <code>closed/&lt;ID&gt;/</code> first — if it's already there, this run is idempotent: read the status, report it, stop. Otherwise <code>active/&lt;ID&gt;/</code>, falling back to the flat legacy layout.</td></tr>
+    <tr><td>Locate</td><td>Resolves the plan folder from a ticket id or a bare invocation. Checks <code>closed/&lt;ID&gt;/</code> first — if it's already there, this is the phase-2 entry point: ask <code>gh</code> whether the PR merged, then clean up or explain why it can't yet. Otherwise <code>active/&lt;ID&gt;/</code>, falling back to the flat legacy layout.</td></tr>
     <tr><td>Git preflight</td><td>Requires a clean working tree — the close commit must contain the close and nothing else — detects whether this checkout is a worktree, and finds the base branch to diff against for the commit list the next phase reconciles.</td></tr>
     <tr><td>Establish status</td><td>Asks which of exactly three outcomes applies: <code>completed</code>, <code>abandoned</code>, or <code>superseded by &lt;TICKET-ID&gt;</code>. There is no <code>merged</code> status — the PR hasn't merged at this point, that's the whole reason the archive travels inside it.</td></tr>
     <tr><td>Reconcile <code>tasks.md</code></td><td>Builds a phase-to-commit mapping from <code>tasks.md</code> and the branch's real commit log and has you correct it — never guesses a row it can't place. A plan with any phase still <code>pending</code>, <code>in_progress</code> or <code>blocked</code> can't be stamped <code>completed</code> until you drop it or go finish it.</td></tr>
     <tr><td>Verify <code>handoff.md</code></td><td>Scans it against a checklist and confirms out loud that an empty "Key deviations from the original plan" section is genuinely empty, not just unfilled.</td></tr>
+    <tr><td>Push and open the PR</td><td>Pushes the branch and opens a PR — title from the <code>master-plan.md</code> H1, body assembled from <code>handoff.md</code>, ready for review. <strong>Before the stamp, on purpose:</strong> the header records <code>PR #77</code> and that number doesn't exist until the PR does. An existing PR for the branch is reused, never duplicated.</td></tr>
     <tr><td>Stamp and archive</td><td>Writes a one-line <code>&lt;!-- STATUS: ... --&gt;</code> header into <code>master-plan.md</code> (and <code>tasks.md</code> / <code>handoff.md</code> when present), <code>git mv</code>s the folder to <code>docs/plans/closed/&lt;ID&gt;/</code>, and creates or updates <code>docs/plans/INDEX.md</code>.</td></tr>
+    <tr><td>Commit and hand back</td><td>Commits the close, pushes it into the same PR, and stops — telling you plainly that the merge is yours and that running the command again afterwards is what cleans up.</td></tr>
+    <tr><td>Clean up <span class="pill">phase 2</span></td><td>Only once <code>gh</code> confirms <code>MERGED</code>: removes the worktree, returns to the default branch, pulls, and deletes the branch local and remote. Refuses while anything in the worktree is unpushed.</td></tr>
   </tbody>
 </table>
 </div>
 
 <div class="note">
   <span class="label">Idempotent by construction</span>
-  <p>A second run against an already-closed plan reads its status from
+  <p>A run against an already-closed plan whose PR hasn't merged reads its status from
     <code>closed/&lt;ID&gt;/master-plan.md</code>, reports it, and stops — it never re-stamps or
-    re-moves a folder, and never duplicates its <code>INDEX.md</code> row.</p>
+    re-moves a folder, and never duplicates its <code>INDEX.md</code> row. And every phase-2 step
+    checks before acting: by the time you merge, the worktree is usually already gone (the harness
+    offers to remove it when a session ends), so <strong>phase 2 never fails because something
+    already happened.</strong></p>
 </div>
 
 <div class="warn-box">
   <span class="label">Abandoning needs a second command</span>
-  <p>An <code>abandoned</code> close still writes to the branch about to be deleted. The skill
-    prints the close commit <em>plus</em> a rescue <code>git cherry-pick</code> onto the default
-    branch — skip the second command and the archive this step exists to preserve is discarded
+  <p>An <code>abandoned</code> close still writes to the branch about to be deleted, opens no PR,
+    and has no phase 2. The skill runs the close commit <em>plus</em> a rescue
+    <code>git cherry-pick</code> onto the default branch — confirming each one first, the only
+    place in the skill that does, because its expected outcome is that a branch carrying real work
+    disappears. Skip the second command and the archive this step exists to preserve is discarded
     along with the branch.</p>
 </div>
 
 <p>There is no reopen: undoing a mistaken close is <code>git revert</code> of the close commit, or
-  a manual reverse. Once it prints the commit it stops — merging, pushing and worktree cleanup are
-  <code>superpowers:finishing-a-development-branch</code>'s job, not this skill's.</p>
+  a manual reverse. Phase 2 is the safer half by construction — everything it deletes is already
+  redundant with the default branch, which is exactly why it refuses to run before
+  <code>gh</code> says the PR merged.</p>
 
 <h2 id="artifacts">Generated files</h2>
 
@@ -420,11 +442,11 @@ recommend at score >= 3, cap 4 per phase</code></pre>
 <table>
   <thead><tr><th>Skill</th><th>Role</th></tr></thead>
   <tbody>
-    <tr><td><code>create-master-plan</code></td><td>Ticket → researched plan. 5 references: source adapters, interview protocol, issue.specs template, master-plan template, tech-stack profiles.</td></tr>
+    <tr><td><code>create-master-plan</code></td><td>Ticket → worktree + researched plan. 6 references: source adapters, interview protocol, issue.specs template, master-plan template, tech-stack profiles, git lifecycle.</td></tr>
     <tr><td><code>decompose-plan</code></td><td>Plan → phases, rounds, orchestrator. 6 references: master-plan format, phase / tasks / execute-plan / handoff templates, skill-matching heuristics, tech-stack profiles.</td></tr>
     <tr><td><code>plan-review-prompt</code> <span class="pill">optional</span></td><td>Plan → review prompt for an external reviewer, before it is built. 2 references: master-plan review, decomposed-plan review.</td></tr>
     <tr><td><code>plan-implementation-review</code> <span class="pill">optional</span></td><td>Plan + changeset → review prompt for an external reviewer, afterwards. 1 reference: implementation review.</td></tr>
-    <tr><td><code>close-master-plan</code></td><td>Plan → reconciled, verified and archived. 3 references: plan layout, closeout checklist, INDEX template.</td></tr>
+    <tr><td><code>close-master-plan</code></td><td>Plan → reconciled, verified, archived, proposed as a PR, then cleaned up. 4 references: plan layout, closeout checklist, INDEX template, git lifecycle (byte-identical to <code>create-master-plan</code>'s copy — the two ends of one contract).</td></tr>
   </tbody>
 </table>
 </div>
@@ -651,6 +673,11 @@ codegraph init && codegraph status</code></pre>
   <code>rules/git-workflow.md</code> documents why — the coordinator emits commit commands
   as text for a human to run. To let agents commit, change <strong>both</strong> files: the
   rule states intent, the deny list is the actual gate.</p>
+<p>That policy governs <em>execution</em>, step 3, where five agents are writing at once. It is a
+  separate question from the ticket's own lifecycle: step 1 creates the worktree and branch, and
+  step 6 commits the close, pushes, opens the PR and later removes the worktree. If your deny list
+  blocks those, step 6 degrades to printing the commands rather than failing — but the two
+  mechanisms are worth keeping apart in your head. <strong>Neither of them ever merges.</strong></p>
 
 <h3>9 · Write your rule files</h3>
 <p>The highest-leverage remaining work, and the one thing nobody can ship for you. Phase
@@ -682,6 +709,9 @@ codegraph init && codegraph status</code></pre>
     <tr><td><code>codegraph</code> MCP won't start</td><td>Almost always an <code>npx</code>-only setup — it must be on <code>PATH</code>: <code>npm i -g @colbymchenry/codegraph</code>. Confirm the agent id was <code>claude</code>, not <code>claude-code</code>.</td></tr>
     <tr><td>CodeGraph returns stale symbols</td><td>The watcher lags ~1s. <code>codegraph sync .</code>; <code>codegraph unlock</code> clears a stale lock.</td></tr>
     <tr><td>Step 6 stops with "working tree not clean"</td><td>By design — the close commit must contain only the close. Commit or stash whatever else is pending, then re-run.</td></tr>
+    <tr><td>Step 6 archived everything but nothing got cleaned up</td><td>Expected: that was phase 1, and it stops at the PR because the merge is yours. Merge it, then run <code>/close-master-plan</code> again — that run deletes the branch and removes the worktree.</td></tr>
+    <tr><td>Phase 2 refuses: unpushed work in the worktree</td><td>A merged PR says nothing about what was added afterwards. Push it or discard it, then re-run. This guard is what stands between a stray commit and a deleted branch.</td></tr>
+    <tr><td><code>git branch -d</code> says "not fully merged"</td><td>A squash merge puts the branch's content on the default branch under a new SHA. The skill uses <code>-D</code> there, but only after <code>gh</code> answered <code>MERGED</code>, and it says so when it does.</td></tr>
     <tr><td>Abandoned-close cherry-pick conflicts</td><td>Expected, not a failure: the plan folder usually never existed on the default branch. <code>git add</code> the reported paths to accept the incoming files, then <code>git cherry-pick --continue</code>.</td></tr>
   </tbody>
 </table>
