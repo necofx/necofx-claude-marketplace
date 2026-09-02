@@ -17,6 +17,11 @@
       "description": "Step 2 of a plan-first multi-agent workflow, packaged verbatim from its author's own files: turn a master plan into atomic phases grouped into parallel rounds, file-conflict checked and skill-matched, emitting phases/, tasks.md, execute-plan.md and handoff.md for multi-agent execution."
     },
     {
+      "name": "execute-master-plan",
+      "source": "./plugins/execute-master-plan",
+      "description": "Step 3 of a plan-first multi-agent workflow: start the execution of an already-decomposed plan. Resolves the plan folder, commits the plan if it isn't committed yet, reads the Coordinator Prompt that execute-plan.md already contains, and adopts it — dispatching one teammate per phase, a round at a time. Replaces extracting that block by hand and pasting it."
+    },
+    {
       "name": "plan-review",
       "source": "./plugins/plan-review",
       "description": "Steps 4-5 of a plan-first multi-agent workflow, packaged from its author's own files: generate a self-contained review prompt for a fresh external reviewer — either of the plan before it is built, or of the real changeset against the plan afterwards — and optionally run it through the Codex CLI."

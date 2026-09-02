@@ -161,8 +161,9 @@
   </div></div>
   <div class="flow-step"><span class="flow-num">3</span><div class="flow-body">
     <strong>Execute</strong>
-    <span class="cmd">paste execute-plan.md into a fresh conversation</span>
-    <p class="out">Coordinator dispatches one agent per phase, whole round at once,
+    <span class="cmd">/execute-master-plan GH-412 — in a FRESH conversation</span>
+    <p class="out">Commits the plan, adopts the Coordinator Prompt out of
+      <code>execute-plan.md</code>, dispatches one agent per phase, whole round at once,
       advances only when the round is green</p>
   </div></div>
   <div class="flow-step"><span class="flow-num">4</span><div class="flow-body">
@@ -255,8 +256,25 @@ recommend at score >= 3, cap 4 per phase</code></pre>
 
 <h2 id="step3">3 · Execute</h2>
 
-<p>Open a <strong>fresh conversation</strong>, paste the Coordinator Prompt from
-  <code>execute-plan.md</code>. The coordinator then loops:</p>
+<pre><code>/execute-master-plan GH-412</code></pre>
+
+<p><strong>Open a fresh conversation first, and make this its first message.</strong> The command
+  resolves the plan folder, commits the plan if it isn't committed yet, lifts the Coordinator Prompt
+  out of <code>execute-plan.md</code> — the <code>## Coordinator Prompt</code> heading and the
+  fenced block under it — and adopts it. Pasting that block by hand still works and is exactly what
+  the command automates; nothing about the protocol changed.</p>
+
+<div class="warn-box">
+  <span class="label">It asks whether the conversation is fresh, and defaults to stopping</span>
+  <p>A skill cannot measure or clear its own context, so the one requirement that makes this step
+    load-bearing can't be enforced from inside it — only respected. The question comes first, before
+    any file is read, so answering "stop, I'll open a new window" costs nothing. The coordinator
+    ends up holding the master plan, every phase file and every teammate's report at once; started
+    in a window that already holds your planning discussion, it compacts mid-run and dispatches
+    round 2 on top of deviations it has forgotten.</p>
+</div>
+
+<p>Once it hands over, the coordinator loops:</p>
 
 <ol>
   <li>Read master plan, <code>tasks.md</code>, every phase file — know the whole shape first.</li>
@@ -443,6 +461,7 @@ recommend at score >= 3, cap 4 per phase</code></pre>
   <thead><tr><th>Skill</th><th>Role</th></tr></thead>
   <tbody>
     <tr><td><code>create-master-plan</code></td><td>Ticket → worktree + researched plan. 6 references: source adapters, interview protocol, issue.specs template, master-plan template, tech-stack profiles, git lifecycle.</td></tr>
+    <tr><td><code>execute-master-plan</code></td><td>Decomposed plan → the run. Resolves the folder, commits the plan, adopts the Coordinator Prompt <code>decompose-plan</code> generated, and coordinates the rounds. Owns almost no protocol of its own by design: the prompt it runs is the one in <code>execute-plan.md</code>.</td></tr>
     <tr><td><code>decompose-plan</code></td><td>Plan → phases, rounds, orchestrator. 6 references: master-plan format, phase / tasks / execute-plan / handoff templates, skill-matching heuristics, tech-stack profiles.</td></tr>
     <tr><td><code>plan-review-prompt</code> <span class="pill">optional</span></td><td>Plan → review prompt for an external reviewer, before it is built. 2 references: master-plan review, decomposed-plan review.</td></tr>
     <tr><td><code>plan-implementation-review</code> <span class="pill">optional</span></td><td>Plan + changeset → review prompt for an external reviewer, afterwards. 1 reference: implementation review.</td></tr>

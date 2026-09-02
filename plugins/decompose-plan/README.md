@@ -125,7 +125,7 @@ docs/plans/active/GH-412/          ← name this folder at every step
 | 1 | `/create-master-plan 412` | any conversation | `issue.specs`, `master-plan.md` |
 | 2 | `/decompose-plan docs/plans/active/GH-412` | same conversation is fine | `phases/`, `tasks.md`, `execute-plan.md`, `handoff.md` |
 | 2.5 | `/plan-review-prompt` → paste output into Codex | any conversation | findings you fold back into the plan |
-| 3 | paste the Coordinator Prompt (below) | **a fresh conversation — mandatory** | the code, plus `tasks.md` and `handoff.md` filled in |
+| 3 | `/execute-master-plan GH-412` | **a fresh conversation — mandatory** | the code, plus `tasks.md` and `handoff.md` filled in |
 | 4 | `/plan-implementation-review` → paste output into Codex | any conversation | findings on what actually landed |
 
 Only one of those transitions is load-bearing: **step 3 must start in an empty conversation.** The rest can share one.
@@ -152,17 +152,25 @@ It finishes with a summary: phase count, round count, the largest round, a rough
 |---|---|
 | `phases/PHASE-NN-<slug>.md` | Are these phases you would have written yourself? Does the Files list look complete — or is a registration file missing? |
 | `tasks.md` | The `## Coordination Notes` section flags anything the skill had to *infer* because the master plan did not say. Read those flags. |
-| `execute-plan.md` | The round list, then the Coordinator Prompt you paste. |
+| `execute-plan.md` | The round list, then the Coordinator Prompt — read by [`execute-master-plan`](../execute-master-plan/), or pasted by hand. |
 | `handoff.md` | Empty scaffold; the coordinator fills it after the last round. |
 
 **Vague or overlapping phases mean an underspecified master plan.** Do not patch the phases — go back and sharpen the plan. Patching phases fixes the symptom in one place and leaves it everywhere else.
 
 ### 3. Execute — in a fresh conversation
 
+```
+/execute-master-plan docs/plans/active/GH-412
+```
+
+**In a fresh conversation, as its first message.** [`execute-master-plan`](../execute-master-plan/) commits the plan, lifts the Coordinator Prompt out of `execute-plan.md` and adopts it. It asks once whether the conversation really is fresh and defaults to stopping if you say no — a skill cannot measure or clear its own context, so that requirement can be respected but never enforced from inside.
+
+Everything below describes the same thing done by hand. It still works, and it is the fallback the skill degrades to if it cannot find the block.
+
 **What "the Coordinator Prompt block" means.** `execute-plan.md` has three parts, and only the middle one is for the machine:
 
 1. A round list at the top — `Round 0`, `Round 1`, … with each phase and its owner agent. **For you**, so you can see the shape before committing to it.
-2. A `## Coordinator Prompt` heading followed by **one fenced code block, roughly 170 lines.** *This is the thing you paste.* It opens with `You are the coordinator for the implementation of "…"` and closes with the "recommended next step" line.
+2. A `## Coordinator Prompt` heading followed by **one fenced code block, roughly 170 lines.** *This is the thing that gets pasted* — and the thing `execute-master-plan` locates and adopts. **That heading-plus-first-fence shape is a contract between the two plugins**, noted as such in the template: changing it breaks the reader, which ships separately with its own version. It opens with `You are the coordinator for the implementation of "…"` and closes with the "recommended next step" line.
 3. `## Tips for the coordinator` at the bottom — **also for you.** Out-of-band commentary about why the rounds work the way they do. Do not paste it; appending it dilutes the instruction the coordinator is following.
 
 So: open the file, select everything *between* the two ``` fences under `## Coordinator Prompt`, and paste that into a new conversation. Or lift it from the command line:

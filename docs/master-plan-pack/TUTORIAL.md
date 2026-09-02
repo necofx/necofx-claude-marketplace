@@ -57,7 +57,7 @@ flowchart TD
     S2 -. optional .-> R1["2.5 · plan-review-prompt<br/>review the plan before building it"]
     R1 -. findings .-> S1
 
-    S2 --> S3["3 · paste the Coordinator Prompt<br/>FRESH conversation — mandatory"]
+    S2 --> S3["3 · /execute-master-plan<br/>FRESH conversation — mandatory"]
     S3 --> C1["the code · tasks.md filled · handoff.md filled"]
 
     C1 --> S4["4 · /code-review<br/>the diff on its own merits"]
@@ -73,7 +73,7 @@ flowchart TD
 | 1 | `/create-master-plan 412` | any | a worktree on `feature/gh-412` (plus its own CodeGraph index, if the repo has one), `issue.specs`, `master-plan.md` |
 | 2 | `/decompose-plan docs/plans/active/GH-412` | the same one is fine | `phases/`, `tasks.md`, `execute-plan.md`, `handoff.md` |
 | 2.5 | `/plan-review-prompt` | any | findings you fold back into the plan — **optional** |
-| 3 | paste the Coordinator Prompt | **a fresh one — mandatory** | the code |
+| 3 | `/execute-master-plan GH-412` | **a fresh one — mandatory** | the code |
 | 4 | `/code-review` | any | findings on the diff |
 | 5 | `/plan-implementation-review` | any | findings on the diff *against the plan* — **optional** |
 | 6 | `/close-master-plan GH-412` | any | `tasks.md` reconciled, `handoff.md` verified, folder moved to `docs/plans/closed/GH-412/`, `INDEX.md` updated, branch pushed and the PR opened — then it stops, because the merge is yours |
@@ -654,12 +654,22 @@ A decomposition review of GH-412 would be looking for exactly the kind of thing 
 
 # Part 3 · Execute — in a fresh conversation
 
-`execute-plan.md` has three parts and **only the middle one is for the machine**: a round list for you at the top, one fenced ~170-line block under `## Coordinator Prompt`, and tips for you at the bottom. Paste only the fenced block, as your very first message, with no preamble.
+```
+/execute-master-plan GH-412
+```
+
+**Open the fresh conversation, then make that its first message.** It resolves the folder, commits the plan if you have not, lifts the Coordinator Prompt out of `execute-plan.md`, and adopts it.
+
+It asks one thing before touching anything: whether this conversation really is fresh — and **defaults to stopping if you say no**. That is not ceremony. A skill has no way to measure or clear its own context, so the requirement that makes this step load-bearing can be respected from inside a skill but never enforced; stopping costs one keystroke, and being wrong costs the run.
+
+**The manual path still works and is what the command automates.** `execute-plan.md` has three parts and **only the middle one is for the machine**: a round list for you at the top, one fenced ~170-line block under `## Coordinator Prompt`, and tips for you at the bottom. Paste only the fenced block, as your very first message, with no preamble.
 
 ````bash
 awk '/^## Coordinator Prompt/{f=1;next} f&&/^```/{c++;next} f&&c==1' \
   docs/plans/active/GH-412/execute-plan.md | clip.exe      # pbcopy on macOS, xclip -sel c on Linux
 ````
+
+That heading-plus-first-fence shape is a **contract** between `decompose-plan`, which writes it, and `execute-master-plan`, which reads it from a separate plugin with its own version. If the reader ever cannot find the block, it prints the path and tells you to paste it by hand — this exact flow — rather than improvising a prompt of its own.
 
 Then the coordinator loops. Round 1 of GH-412 looks like this:
 
@@ -672,7 +682,7 @@ sequenceDiagram
     participant P2 as phase-02 · python-pro
     participant P3 as phase-03 · kubernetes-architect
 
-    U->>C: paste the Coordinator Prompt
+    U->>C: /execute-master-plan GH-412
     C->>T: read master plan + tasks.md + every phase file
     C->>U: summary + file-conflict verdict
 
@@ -784,7 +794,7 @@ flowchart TD
 
 ### The three postures, and the exact words
 
-Pick one and say it **once, at the start of the run** — in the same message as the Coordinator Prompt, or in the message right after it:
+Pick one and say it **once, at the start of the run** — in the message right after `/execute-master-plan` (or after the pasted Coordinator Prompt, if you went manual):
 
 | You want | Type this | What you get |
 |---|---|---|
@@ -886,7 +896,7 @@ sequenceDiagram
     Note over W,M: main checkout untouched from here on
     S->>W: issue.specs, master-plan.md — born inside the worktree
 
-    U->>S: paste the Coordinator Prompt
+    U->>S: /execute-master-plan GH-412
     S->>W: the whole run happens here — code, tasks.md, handoff.md
 
     U->>S: /close-master-plan GH-412
@@ -907,7 +917,7 @@ Three things that bite people, in the order they bite:
 
 ### The whole thing in four lines
 
-If you want one message that removes every ambiguity above, this is it — paste it right after the Coordinator Prompt:
+If you want one message that removes every ambiguity above, this is it — send it right after the coordinator takes over:
 
 ```text
 Work in a worktree on branch feature/gh-412-partial-refunds.
@@ -1123,9 +1133,7 @@ codegraph init                                                     # optional, i
 /create-master-plan 412                                            # → worktree + feature/gh-412, issue.specs, master-plan.md
 /decompose-plan docs/plans/active/GH-412                           # → phases/, tasks.md, execute-plan.md
 /plan-review-prompt                                                # optional — review the plan first
-git add docs/plans/active/GH-412 && git commit -m "GH-412: plan"   # commit the plan BEFORE executing
-awk '/^## Coordinator Prompt/{f=1;next} f&&/^```/{c++;next} f&&c==1' \
-  docs/plans/active/GH-412/execute-plan.md                         # paste into a FRESH conversation
+/execute-master-plan GH-412                                        # in a FRESH conversation — commits the plan, adopts the prompt
 /code-review                                                       # the diff on its own merits
 /plan-implementation-review                                        # optional — the diff against the plan
 /close-master-plan GH-412                                          # phase 1: archive, push, open the PR

@@ -1,6 +1,6 @@
 {
   "name": "close-master-plan",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Step 6 of a plan-first multi-agent workflow: reconcile tasks.md with the real commits, verify handoff.md is complete, stamp the plan's outcome and archive it under docs/plans/closed/, then push the branch and open the PR; run it again once that PR has merged and it deletes the branch and removes the worktree. It never merges — that stays yours.",
   "author": {
     "name": "necofx",

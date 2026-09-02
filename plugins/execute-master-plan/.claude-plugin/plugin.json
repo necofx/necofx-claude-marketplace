@@ -1,0 +1,9 @@
+{
+  "name": "execute-master-plan",
+  "version": "0.1.0",
+  "description": "Step 3 of a plan-first multi-agent workflow: start the execution of an already-decomposed plan. Resolves the plan folder, commits the plan if it isn't committed yet, reads the Coordinator Prompt that execute-plan.md already contains, and adopts it — dispatching one teammate per phase, a round at a time. Replaces extracting that block by hand and pasting it.",
+  "author": {
+    "name": "necofx",
+    "email": "admin@necofx.com"
+  }
+}

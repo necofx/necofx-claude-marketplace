@@ -26,6 +26,21 @@ This file is the **round-by-round orchestrator prompt** for the multi-agent (tea
 
 ---
 
+<!--
+  CONTRACT — do not change this shape without updating the other side.
+
+  The `## Coordinator Prompt` heading below, plus the FIRST fenced block after it, is an interface.
+  Two consumers read it: a human selecting the block to paste, and the `execute-master-plan` plugin,
+  which locates the heading, takes the first fence after it, and adopts the contents as its own
+  instructions. That plugin ships separately and carries its own version number, so it cannot be
+  updated atomically with this file.
+
+  Safe: editing the prose INSIDE the block. Breaking: renaming or removing the heading, wrapping the
+  block in another fence, emitting more than one fenced block under the heading, or leaving a
+  {PLACEHOLDER} unsubstituted (execute-master-plan refuses to run a prompt that still contains one,
+  by design — it reports the defect instead of guessing what you meant).
+-->
+
 ## Coordinator Prompt
 
 ```
