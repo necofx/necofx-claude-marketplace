@@ -69,10 +69,10 @@ This is where the skill earns its keep. Read the relevant plan files for the cho
 4. **De-duplicate and group** into these categories (omit any that are empty):
    - **A. The plan under review** — the plan/phase/orchestration files themselves.
    - **B. Source of truth** — the spec/ticket the plan must faithfully honor.
-   - **C. Repo surface to verify** — the code, scripts, configs, and tests the plan touches, so the reviewer can confirm the plan's `file:line` references resolve and its claims about the code are true. This is the most important group and is usually the longest. **When `.codegraph/` exists, build this group from the graph**: `codegraph explore "<the area this plan touches>"` returns the real files and their dependents in one call, and `codegraph impact <symbol>` surfaces the caller the plan never mentioned — which is the same omission that later turns two "parallel" phases into a file conflict. Harvesting only what the plan cites reproduces the plan's own blind spots. Fall back to ordinary search when the repo is not indexed, and never index it yourself.
+   - **C. Repo surface to verify** — the code, scripts, configs, and tests the plan touches, so the reviewer can confirm the plan's `file:line` references resolve and its claims about the code are true. This is the most important group and is usually the longest. **When `.codegraph/` exists, run `codegraph sync` once, then build this group from the graph**: `codegraph explore "<the area this plan touches>"` returns the real files and their dependents in one call, and `codegraph impact <symbol>` surfaces the caller the plan never mentioned — which is the same omission that later turns two "parallel" phases into a file conflict. Harvesting only what the plan cites reproduces the plan's own blind spots. Fall back to ordinary search when the repo is not indexed, and never index it yourself.
    - **D. Optional calibration** — predecessor plans, canonical examples in the same repo, or the skill/templates the plan was generated from, if discoverable. Mark as "read if accessible".
 5. **Annotate each entry** with a one-line "why this matters for the review". A bare path list is weak; the reason is what directs the reviewer's attention.
-6. **CodeGraph, when the repo has one.** If a `.codegraph/` directory exists at the repository root, add a short **Tooling** block to the generated prompt: tell the reviewer to prefer `codegraph explore "<question>"` over `Glob`/`Grep`/`Read` loops when checking the plan's claims about the code, because one call returns the relevant symbols' verbatim line-numbered source, the call paths between them and what depends on them — and it follows dynamic dispatch (DI resolution, registries, callbacks) that a text search cannot, which is exactly where a plan's "this is isolated" claim tends to be wrong. `codegraph impact <symbol>` answers "what does changing this reach". Two constraints go in the block: fall back to ordinary search if the command is unavailable in the reviewer's environment, and never index the repository — indexing is the user's decision. If there is no `.codegraph/` directory, omit the block entirely rather than mentioning a tool the reviewer cannot use.
+6. **CodeGraph, when the repo has one.** If a `.codegraph/` directory exists at the repository root, add a short **Tooling** block to the generated prompt: tell the reviewer to prefer `codegraph explore "<question>"` over `Glob`/`Grep`/`Read` loops when checking the plan's claims about the code, because one call returns the relevant symbols' verbatim line-numbered source, the call paths between them and what depends on them — and it follows dynamic dispatch (DI resolution, registries, callbacks) that a text search cannot, which is exactly where a plan's "this is isolated" claim tends to be wrong. `codegraph impact <symbol>` answers "what does changing this reach". Two constraints go in the block: fall back to ordinary search if the command is unavailable in the reviewer's environment (including when it answers `unable to open database file` — a read-only sandbox with nothing holding the index open; see the run step), and never index the repository — indexing is the user's decision. If there is no `.codegraph/` directory, omit the block entirely rather than mentioning a tool the reviewer cannot use.
 
 When the mode is **all**, build ONE merged onboarding (the plan artifacts of both kinds, the shared source of truth once, and the union of the repo surface) — do not duplicate the shared files across two lists.
 
@@ -125,15 +125,26 @@ Do not review the plan yourself — the skill's deliverable is the prompt, and t
 
 Running the prompt is **optional and never automatic**. Once it is saved to a file, offer to run it, and run it only if the user agrees:
 
-```sh
-codex exec --sandbox read-only ${CODEX_MODEL:+-m "$CODEX_MODEL"} \
-  -o <folder>/codex-review-<mode>.md \
-  < <folder>/codex-review-prompt-<mode>.md
+```bash
+(
+  if [ -f .codegraph/codegraph.db ]; then   # indexed repo only — see "CodeGraph under read-only" below
+    codegraph sync >/dev/null 2>&1 || true   # outside the sandbox: fresh index, oversized WAL healed
+    exec 3< <(python3 -c 'import sqlite3, sys, time
+c = sqlite3.connect(sys.argv[1]); c.execute("select count(*) from sqlite_master").fetchone()
+print("ready", flush=True); time.sleep(86400)' .codegraph/codegraph.db)
+    CG_HOLD=$!; trap 'kill $CG_HOLD 2>/dev/null' EXIT
+    read -r _ <&3
+  fi
+  codex exec --sandbox read-only ${CODEX_MODEL:+-m "$CODEX_MODEL"} \
+    -o <folder>/codex-review-<mode>.md \
+    < <folder>/codex-review-prompt-<mode>.md
+)
 ```
 
-- Run it **from the repo root** — the prompt's paths are repo-relative.
+- Run it **from the repo root**, and as one block: the parentheses scope the CodeGraph holder to this run. The prompt's paths are repo-relative.
 - **Take the model from the environment, never hardcode one.** If `CODEX_MODEL` is set, pass its value as `-m <name>`; if it is unset, omit `-m` and let the CLI use the model from its own config (Codex's stock default — no special provider or routing). The expansion above does exactly that in one line.
 - `--sandbox read-only` is deliberate: the reviewer reads the repo and must not write to it.
+- **CodeGraph under read-only.** The index is SQLite in WAL mode, and opening it means creating `codegraph.db-shm` / `-wal` next to it — which the read-only sandbox forbids, so every `codegraph` call inside Codex fails with `unable to open database file`. It only works when something outside the sandbox already holds the database open: a live CodeGraph daemon usually does in the main checkout, but a worktree's fresh index (the one `create-master-plan` builds) has none, and a daemon idles out after five minutes anyway. Inside the `if`, `codegraph sync` runs first, outside the sandbox: it brings the index up to date with the tree the reviewer is about to read (a worktree index has no file watcher, and a stale index can serve a symbol's code sliced at outdated line numbers), and it lets CodeGraph ≥ 1.6 fold back an oversized write-ahead log on open — a write that would fail inside the sandbox. The rest of the `if` block is the holder: a Python process opens the index, signals `ready` once the sidecar files exist, and is killed when the subshell exits, so it lives exactly as long as the review. The sandbox stays `read-only`. Without `.codegraph/` the block is skipped; without `python3` the `read` returns at once and the reviewer falls back to ordinary search as the Tooling block tells it to.
 - `-o <file>` captures the reviewer's final report verbatim, so the user reads the review itself rather than a retelling of it.
 - Expect minutes, not seconds, on a large plan. Run it in the background if the harness supports that, rather than blocking on a foreground timeout.
 - If `codex` is not installed, or not authenticated (`codex login`), say so and stop. The prompt file is still the deliverable — any capable reviewer with read access to the repo can take it; Codex is only who it was written for.

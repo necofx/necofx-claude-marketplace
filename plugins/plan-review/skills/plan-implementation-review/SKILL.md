@@ -85,9 +85,9 @@ Read the plan files and the changeset, and assemble a grounded, **verified** rea
 
 **C. Repo surface to read in full.** A diff hunk is not enough to judge correctness — the surrounding code, the callers of a changed function, the tests, and any touched config/doc must be read whole. List the post-change files the reviewer should open completely: the changed files themselves; the callers / blast-radius of modified shared code; the test files; the touched configs. Annotate with what to check.
 
-**Resolve that list against the graph, not from the diff, when the repo is indexed.** If `.codegraph/` exists, run `codegraph impact <symbol>` for each changed shared symbol and `codegraph affected <changed files>` for the tests the changeset reaches, and build group C from what they return. A blast radius guessed from the hunks misses every caller reached by dynamic dispatch — the exact callers most likely to break — so the list you hand the reviewer would be short in precisely the places that matter. Fall back to ordinary search when the repo is not indexed, and never index it yourself.
+**Resolve that list against the graph, not from the diff, when the repo is indexed.** If `.codegraph/` exists, run `codegraph sync` first — the changeset is exactly what an unwatched index has not seen yet — then `codegraph impact <symbol>` for each changed shared symbol and `codegraph affected <changed files>` for the tests the changeset reaches, and build group C from what they return. A blast radius guessed from the hunks misses every caller reached by dynamic dispatch — the exact callers most likely to break — so the list you hand the reviewer would be short in precisely the places that matter. Fall back to ordinary search when the repo is not indexed, and never index it yourself.
 
-**C-bis. CodeGraph, when the repo has one.** If a `.codegraph/` directory exists at the repository root, add a short **Tooling** block to the generated prompt telling the reviewer to reach for it instead of a search loop: `codegraph explore "<question>"` returns the relevant symbols' verbatim line-numbered source plus the call paths between them in one call; `codegraph impact <symbol>` gives the blast radius of a changed shared symbol — the group-C question, answered against the real graph instead of a text match, including dynamic dispatch a `grep` cannot follow; `codegraph affected <changed files>` names the tests the changeset reaches, which is how the reviewer judges whether the tests that landed actually cover it. Two constraints go in the block: fall back to ordinary search if the command is unavailable in the reviewer's environment, and never index the repository — indexing is the user's decision. If there is no `.codegraph/` directory, omit the block entirely rather than mentioning a tool the reviewer cannot use.
+**C-bis. CodeGraph, when the repo has one.** If a `.codegraph/` directory exists at the repository root, add a short **Tooling** block to the generated prompt telling the reviewer to reach for it instead of a search loop: `codegraph explore "<question>"` returns the relevant symbols' verbatim line-numbered source plus the call paths between them in one call; `codegraph impact <symbol>` gives the blast radius of a changed shared symbol — the group-C question, answered against the real graph instead of a text match, including dynamic dispatch a `grep` cannot follow; `codegraph affected <changed files>` names the tests the changeset reaches, which is how the reviewer judges whether the tests that landed actually cover it. Two constraints go in the block: fall back to ordinary search if the command is unavailable in the reviewer's environment (including when it answers `unable to open database file` — a read-only sandbox with nothing holding the index open; see the run step), and never index the repository — indexing is the user's decision. If there is no `.codegraph/` directory, omit the block entirely rather than mentioning a tool the reviewer cannot use.
 
 **D. The repo's own standards — discover, don't assume.** Find and name the standards the code must satisfy: root `AGENTS.md` / `AGENTS.md` / `GEMINI.md`, `.Codex/rules/*`, `CONTRIBUTING` / coding-standards docs, `.editorconfig`, linter/formatter configs (eslint, ruff, stylecop, etc.). Do **not** hardcode any specific rule — point the reviewer at the files so it checks the code against the project's *actual* conventions. (Same discover-and-verify move the sibling does for paths.)
 
@@ -142,15 +142,26 @@ Do not review the changeset yourself — the skill's deliverable is the prompt, 
 
 Running the prompt is **optional and never automatic**. Once it is saved to a file, offer to run it, and run it only if the user agrees:
 
-```sh
-codex exec --sandbox read-only ${CODEX_MODEL:+-m "$CODEX_MODEL"} \
-  -o <folder>/codex-implementation-review.md \
-  < <folder>/codex-implementation-review-prompt.md
+```bash
+(
+  if [ -f .codegraph/codegraph.db ]; then   # indexed repo only — see "CodeGraph under read-only" below
+    codegraph sync >/dev/null 2>&1 || true   # outside the sandbox: fresh index, oversized WAL healed
+    exec 3< <(python3 -c 'import sqlite3, sys, time
+c = sqlite3.connect(sys.argv[1]); c.execute("select count(*) from sqlite_master").fetchone()
+print("ready", flush=True); time.sleep(86400)' .codegraph/codegraph.db)
+    CG_HOLD=$!; trap 'kill $CG_HOLD 2>/dev/null' EXIT
+    read -r _ <&3
+  fi
+  codex exec --sandbox read-only ${CODEX_MODEL:+-m "$CODEX_MODEL"} \
+    -o <folder>/codex-implementation-review.md \
+    < <folder>/codex-implementation-review-prompt.md
+)
 ```
 
-- Run it **from the repo root** — the prompt's paths are repo-relative and it regenerates the diff itself.
+- Run it **from the repo root**, and as one block: the parentheses scope the CodeGraph holder to this run. The prompt's paths are repo-relative and it regenerates the diff itself.
 - **Take the model from the environment, never hardcode one.** If `CODEX_MODEL` is set, pass its value as `-m <name>`; if it is unset, omit `-m` and let the CLI use the model from its own config (Codex's stock default — no special provider or routing). The expansion above does exactly that in one line.
 - `--sandbox read-only` is deliberate and sufficient: the reviewer reads the repo and runs read-only git; it must not touch the tree it is judging.
+- **CodeGraph under read-only.** The index is SQLite in WAL mode, and opening it means creating `codegraph.db-shm` / `-wal` next to it — which the read-only sandbox forbids, so every `codegraph` call inside Codex fails with `unable to open database file`. It only works when something outside the sandbox already holds the database open: a live CodeGraph daemon usually does in the main checkout, but a worktree's fresh index (the one `create-master-plan` builds) has none, and a daemon idles out after five minutes anyway. Inside the `if`, `codegraph sync` runs first, outside the sandbox: it brings the index up to date with the tree the reviewer is about to read (a worktree index has no file watcher, and a stale index can serve a symbol's code sliced at outdated line numbers), and it lets CodeGraph ≥ 1.6 fold back an oversized write-ahead log on open — a write that would fail inside the sandbox. The rest of the `if` block is the holder: a Python process opens the index, signals `ready` once the sidecar files exist, and is killed when the subshell exits, so it lives exactly as long as the review. The sandbox stays `read-only`. Without `.codegraph/` the block is skipped; without `python3` the `read` returns at once and the reviewer falls back to ordinary search as the Tooling block tells it to.
 - `-o <file>` captures the reviewer's final report verbatim, so the user reads the review itself rather than a retelling of it.
 - Expect minutes, not seconds, on a large changeset. Run it in the background if the harness supports that, rather than blocking on a foreground timeout.
 - **Don't let the tree drift during the run.** The reviewer reproduces the diff live; edits made while it works produce findings against code that no longer exists.

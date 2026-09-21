@@ -59,7 +59,7 @@ The skills use it while building the prompt: the reading list of callers, blast 
 
 And the prompt carries a **Tooling** block telling the reviewer to answer "who calls this, what does this change reach, which tests cover it" the same way rather than with a `grep`/read loop. One call returns the symbols' line-numbered source plus the call paths between them, and it follows dynamic dispatch — registries, DI resolution, callbacks — that a text search cannot. That is precisely where "this change is isolated" turns out to be false.
 
-It works inside `--sandbox read-only`; that was verified, not assumed. One caveat behind the verification: the index's daemon was already running at the time, so if the CLI ever has to start one it may want write access. The block therefore tells the reviewer to fall back to ordinary search if the command is not available to it.
+It works inside `--sandbox read-only` **only while something outside the sandbox holds the index open**, and the run command makes sure something does. The index is SQLite in WAL mode: opening it means creating `codegraph.db-shm` / `-wal` beside it, which a read-only sandbox forbids, so an unheld index answers every call with `unable to open database file`. A running CodeGraph daemon holds it open in the main checkout, which is why this looks fine there — but a worktree's fresh index (the one `create-master-plan` builds) has no daemon, and a daemon idles out after five minutes anyway. The launch below now opens the index from outside the sandbox for exactly the duration of the run; the reviewer is still told to fall back to ordinary search if the command fails anyway.
 
 No `.codegraph/` directory means no block at all — the prompt never mentions a tool the reviewer cannot use. And neither skill will index your repository: that is your decision, and it writes hundreds of megabytes. The [`decompose-plan` README](../decompose-plan/README.md#4-optional-codegraph) has the install if you want one.
 
@@ -69,14 +69,25 @@ Both tutorials below end the same way, so the mechanics are here once.
 
 The skill offers to run the review after it saves the prompt. Say yes and it executes exactly this, from the repo root:
 
-```sh
-codex exec --sandbox read-only ${CODEX_MODEL:+-m "$CODEX_MODEL"} \
-  -o <report>.md < <prompt>.md
+```bash
+(
+  if [ -f .codegraph/codegraph.db ]; then   # indexed repo: sync, then hold the index open for the run
+    codegraph sync >/dev/null 2>&1 || true
+    exec 3< <(python3 -c 'import sqlite3, sys, time
+c = sqlite3.connect(sys.argv[1]); c.execute("select count(*) from sqlite_master").fetchone()
+print("ready", flush=True); time.sleep(86400)' .codegraph/codegraph.db)
+    CG_HOLD=$!; trap 'kill $CG_HOLD 2>/dev/null' EXIT
+    read -r _ <&3
+  fi
+  codex exec --sandbox read-only ${CODEX_MODEL:+-m "$CODEX_MODEL"} \
+    -o <report>.md < <prompt>.md
+)
 ```
 
-Say no — or run it yourself later, or on another machine — and the same line is yours to paste. Four things about it are deliberate:
+Say no — or run it yourself later, or on another machine — and the same block is yours to paste. Five things about it are deliberate:
 
 - **`--sandbox read-only`** is enough, and is the point. The reviewer reads the repository and runs read-only git; it must never touch the tree it is judging. A review that edits your code is not a review.
+- **The `if` block holds the CodeGraph index open** while Codex runs, so the read-only sandbox can read it — see [If the repo is indexed by CodeGraph](#if-the-repo-is-indexed-by-codegraph-the-prompt-says-so). It is skipped when there is no `.codegraph/`, and the parentheses kill it when the run ends; paste the block whole. The tutorials below show only the `codex exec` line; on an indexed repo, wrap it the same way.
 - **`-o <report>.md`** captures the reviewer's final report to a file, verbatim. You read the review itself, not a retelling of it — which is also why the skill points you at the file instead of summarizing it back at you.
 - **The model comes from the environment.** Set `CODEX_MODEL` to a name and the run uses it; leave it unset and the `${...:+...}` expansion collapses to nothing, so the CLI falls back to Codex's own default — no special provider or routing. Nothing here hardcodes a model, which matters because a reviewer is exactly the place you want to reach for a different one than the one that wrote the code.
 - **It takes minutes**, not seconds, on a real changeset, so the skill backgrounds it where the harness allows. Don't edit the tree while it works: the reviewer regenerates the diff live, and edits mid-run produce findings against code that no longer exists.

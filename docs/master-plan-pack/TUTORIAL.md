@@ -163,6 +163,8 @@ The one that pays for the install is **step 2**: `codegraph impact` finds the re
 
 Every CodeGraph instruction in every skill is conditional on `.codegraph/` existing, so an unindexed repo simply costs more tokens. **No skill will ever index for you** — it writes hundreds of megabytes, so it stays your decision.
 
+**Use 1.6.0 or later, and reindex after every upgrade.** 1.5.0 can silently record a valid file with zero symbols and, on an index with no live watcher — every worktree index — serve a symbol's code sliced at stale line numbers; both are fixed in 1.6.0, but only for indexes rebuilt with it. After `codegraph upgrade`, run `codegraph index` in the repository **and in each active ticket worktree** that has its own `.codegraph/`; `codegraph status` tells you when one still needs it.
+
 ### 0.5 · Restart
 
 Skills load at session start. Open a new conversation before the first `/create-master-plan`.
@@ -598,7 +600,7 @@ codex exec --sandbox read-only ${CODEX_MODEL:+-m "$CODEX_MODEL"} \
   < docs/plans/active/GH-412/codex-review-prompt-all.md
 ```
 
-`--sandbox read-only` is the point — a review must not touch what it judges — and `-o` captures the report verbatim, so you read the reviewer's own words.
+`--sandbox read-only` is the point — a review must not touch what it judges — and `-o` captures the report verbatim, so you read the reviewer's own words. On an indexed repo the skill wraps that line in a short block that holds the CodeGraph index open for the run: SQLite cannot create its `-shm`/`-wal` files inside a read-only sandbox, and without the holder every `codegraph` call the reviewer makes fails with `unable to open database file`. The [plan-review README](../../plugins/plan-review/README.md#how-the-review-is-run) has the block.
 
 **On an indexed repo, CodeGraph is used on both sides of this handoff.** The skill builds the reading list from the graph — `codegraph explore` for the surface the plan touches, `codegraph impact` for the caller the plan never mentioned — and the prompt then carries a Tooling block telling the reviewer to verify the same way. The order matters: a reading list harvested only from what the plan *cites* inherits the plan's blind spots, so the review would be thorough about everything except the thing the plan forgot.
 

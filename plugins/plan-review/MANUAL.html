@@ -368,7 +368,10 @@ recommend at score >= 3, cap 4 per phase</code></pre>
 <p>On a repo with a <code>.codegraph/</code> directory the prompt also carries a
   <a href="#codegraph">CodeGraph</a> block, so the reviewer answers "who calls this, what
   does this change reach, which tests cover it" against the real graph instead of a search
-  loop — it works inside the read-only sandbox. No index, no block.</p>
+  loop. Inside the read-only sandbox that needs the index held open from outside —
+  SQLite cannot create its <code>-shm</code>/<code>-wal</code> files there — so on an indexed
+  repo the skill wraps the command above in a block that does exactly that for the length of
+  the run. No index, no block.</p>
 
 <p>Nothing downstream waits on this. <code>/code-review</code> covers the ordinary case;
   reach for a peer review when the question is whether the code built <em>what the plan
