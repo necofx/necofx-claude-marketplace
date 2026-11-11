@@ -22,6 +22,8 @@ The skill stops at `master-plan.md`. The user invokes `/decompose-plan` separate
 
 ## Workflow
 
+Before Step 0, read `references/operator-notes.md` — the standing rules every step below assumes.
+
 Follow these steps in order.
 
 ### Step 0 — Parse the argument
@@ -109,24 +111,7 @@ If any document fetch fails (auth, missing space, deleted page), record the fail
 
 ### Step 5 — Scan the local `docs/` folder EXHAUSTIVELY
 
-Per the user's explicit direction, no folder is excluded and no cap is applied beyond glob limits.
-
-1. Build the haystack of search terms:
-   - The ticket id itself (e.g. `GH-412`, `ACME-1234`).
-   - Every component name from Step 2.
-   - The most distinctive nouns from the ticket summary (skip stopwords).
-2. Glob `<project-root>/docs/**/*.md` (no exclusion, no depth cap). This glob stays exactly this — nothing here is skipped.
-3. For each candidate file, run a case-insensitive Grep for any of the haystack terms. A single hit is enough.
-4. Partition matches by where they land, then record each partition differently:
-   - **Outside `<plans-root>`, and under `<plans-root>/active/`** — reported in full, exactly as before:
-     - relative path from `<project-root>`
-     - which terms matched
-     - a 1–2 line excerpt around the first match (use Grep with `-B 1 -A 1`)
-   - **Under `<plans-root>/closed/`** — collapsed to one line per matching plan folder, no excerpt, however many files inside that folder matched. Do NOT record a path/terms/excerpt per file; instead, once per matching `closed/<ID>/` folder, read that folder's `master-plan.md` header per `references/plan-layout.md`'s "authoritative carrier" rule and record:
-     `- <ID> · <status> · closed <date> — matched: <term1>, <term2>`
-     If `master-plan.md` is missing, or present but carries no header, use status `unknown` and `closed unknown` for the date field (neither can be read) — never skip the folder.
-
-This produces a potentially long list — that's expected. Section 7 of `issue.specs` is allowed to grow. Collapsing `closed/` matches reduces what the dossier *carries*, not what the scan *reads*: the glob in step 2 still traverses every markdown file under `docs/`, `closed/` included, and step 3 still greps every one of them. Only how much of a `closed/` match gets quoted into `issue.specs` changes — the cost being cut is context, not coverage.
+**Read `references/docs-scan.md` now and follow it.** No folder under `docs/` is excluded and no cap applies: every `docs/**/*.md` is grepped for the ticket id, the component names and the summary's distinctive nouns. Matches under `<plans-root>/closed/` are collapsed to one line per plan folder; everything else is reported in full.
 
 ### Step 5.5 — Detect the project's tech stack(s)
 
@@ -171,22 +156,7 @@ Before exiting the interview, summarise the proposed master-plan outline and ask
 
 ### Step 8 — Generate `master-plan.md`
 
-Before writing, invoke (in this order):
-
-1. `Skill(skill="superpowers:using-superpowers")` — establishes skill discipline.
-2. `Skill(skill="superpowers:writing-plans")` — informs the master-plan structure.
-
-Then write `<plan-folder>/master-plan.md` using the skeleton from `references/master-plan-template.md`. Fill every section based on the combined content of `issue.specs` (the Header and Sections 1–8), the captured Interview Notes (`## Interview Notes` at the bottom of `issue.specs`), and the resolved tech-stack(s) from Step 5.5.
-
-Substitute the stack-specific build commands, test commands, owner-skill recommendations, and coding-rules file paths from the matching profile(s) in `references/tech-stack-profiles.md`. For mixed-stack projects, the master plan's Tech Stack section lists each stack with the layer it covers; each layer's Implementation Outline references the right profile.
-
-The master plan MUST:
-- Open with a Context block linking back to `issue.specs` so a fresh reader has the full trail.
-- List every attachment under `attachments/` with a one-line description each.
-- Be self-contained enough that a future `/decompose-plan` run can extract atomic phases from it without re-reading the tracker.
-- Use the project's own coding-rules / log-hygiene conventions when discussing implementation. When the project enforces no-internal-context-in-log-strings (e.g. via `.claude/rules/logging.md`), call that constraint out in the Technical Requirements section. Plan-level prose can name the ticket key freely; only the *recommendations for code* must be hygienic.
-
-If `superpowers:writing-plans` is unavailable in the current environment, fall back to the skeleton in `references/master-plan-template.md` and note the fallback in the Skill operator notes section of the final file.
+Invoke `Skill(skill="superpowers:using-superpowers")`, then `Skill(skill="superpowers:writing-plans")`. Then **read `references/master-plan-generation.md` now and follow it**: which parts of writing-plans apply to a plan that will be decomposed rather than executed (decisions not code, Review Focus, the proportion check — and never its Execution Handoff), what the plan MUST contain, and the fallback when writing-plans is unavailable.
 
 ### Step 9 — Report back
 
@@ -215,19 +185,11 @@ The canonical 9-section structure for `issue.specs`. Read once at the start of S
 Profiles for .NET, Blazor, React, Delphi, and Java/JVM (build/test commands, test framework, assertion + mocking conventions, code-style notes, conventions location, commit format, root-marker detection). Read in Step 5.5 to pick the right stack(s); referenced again in Steps 7 and 8 whenever a template needs a stack-specific value substituted in. Add new profiles here when working on a different stack rather than hardcoding values in the templates.
 
 ### `references/master-plan-template.md`
-The writing-plans-shaped skeleton for `master-plan.md`. Read once at the start of Step 8. Sections: Context, Pre-flight Checklist, Why, Out of scope, Technical Requirements, Implementation Outline, Test Configuration, Validation & Testing, Acceptance Criteria, Success Criteria, Attachments, Related Docs. Stack-specific values come from the matching profile in `tech-stack-profiles.md`.
+The writing-plans-shaped skeleton for `master-plan.md`. Read once at the start of Step 8. Sections: Context, Pre-flight Checklist, Why, Out of scope, Technical Requirements, Implementation Outline (with Key interfaces), Test Configuration, Validation & Testing, Acceptance Criteria, Review Focus, Success Criteria, Attachments, Related Docs. Stack-specific values come from the matching profile in `tech-stack-profiles.md`.
 
 ### `references/git-lifecycle.md`
 The git contract this plugin shares with `close-master-plan`: the four states a ticket passes through (`unforked` → `forked` → `proposed` → `clean`), how each is *derived* from git and `gh` rather than stored, the creation side this skill applies in Step 0.5 (fork, branch rename, CodeGraph policy, escape table), and the two-phase close the other skill applies. Read once at the start of Step 0.5. **Byte-identical to `close-master-plan`'s copy — edit one, copy it to the other.**
 
 ## Notes for the skill operator
 
-- **CodeGraph, when the repo has one.** If a `.codegraph/` directory exists at the repository root, ground the interview (Step 7) with `codegraph_explore` (MCP) or `codegraph explore "<symbols or question>"` (shell) instead of a `Glob`/`Grep`/`Read` loop. One call returns the relevant symbols' verbatim line-numbered source, the call paths between them, and what depends on them — far cheaper in tokens than reading every file a text search matched, and it follows dynamic dispatch that a text search cannot. This does NOT replace Step 5's `docs/**/*.md` scan: CodeGraph indexes code, not prose. If there is no `.codegraph/` directory, use the ordinary tools and do NOT index the repository yourself — that is the user's decision. **The one exception is Step 0.5's worktree-local index**, and it is an exception precisely because it is not the user's repository being indexed: it is built only when the parent repo already has `.codegraph/` (so the decision was already made), it lives inside the worktree, and it disappears with the worktree when `close-master-plan` cleans up. See `references/git-lifecycle.md`.
-- **MCP tool naming**: server names and tool-name prefixes vary by install, so `references/source-adapters.md` names canonical operations rather than prefixed tool names. Use `ToolSearch` to locate them at runtime; never hardcode a UUID prefix. The GitHub adapter needs no MCP at all — it uses the `gh` CLI.
-- **Read-only intent for every tracker**: this skill never writes to the source (no comments, no transitions, no label edits, no `gh issue edit`). Read-only fetches only, whichever adapter ran.
-- **Git policy is project-dependent — for commits, which this skill still never makes.** Some projects make Claude Code read-only for git (e.g. via `.claude/rules/git-workflow.md`); others let teammates commit themselves. Default to read-only when the project has no explicit policy: the user commits the produced files when they choose. Step 0.5's fork is not a counter-example — creating a worktree and a branch writes no history and touches nothing that already existed, and it is skipped entirely in a repository that a policy or an escape rules out. Committing, pushing and opening the PR happen only in `close-master-plan`, at the end.
-- **No customer data in summaries**: when paraphrasing the ticket for the report-back in Step 9, never include real customer names, identifiers, or credentials.
-- **Skip if a recent plan exists**: when Step 1 finds an existing `master-plan.md` modified within the last 24 hours, mention this in the AskUserQuestion options so the user can choose to bail out without re-fetching everything.
-- **Date format**: always absolute (`YYYY-MM-DD HH:MM`), never relative.
-- **Tech-stack agnostic**: this skill works on .NET, Blazor, React, Delphi, and Java/JVM projects out of the box (and any stack you add to `tech-stack-profiles.md`). The interview and master-plan templates pull stack-specific values from there; do NOT hardcode build/test commands or coding-rules paths in the skill itself.
-- **Mixed-stack projects**: a ticket may span layers (e.g. add a REST endpoint + the React UI that calls it). Record all relevant stacks during Step 5.5; the master plan's Implementation Outline groups work by layer with the matching stack profile.
+Standing rules for the whole run — CodeGraph use, MCP naming, read-only trackers, git policy, no customer data, absolute dates, stack agnosticism — live in `references/operator-notes.md`. Read it once before Step 0.

@@ -25,7 +25,7 @@ Step 3 of a plan-first multi-agent workflow: starts the execution of a plan [`de
 
 If the first line fails to clone, the `owner/repo` shorthand is trying SSH — pass `https://github.com/necofx/necofx-claude-marketplace.git` instead.
 
-Install [`superpowers`](https://github.com/anthropics/claude-plugins-official) too — the Coordinator Prompt invokes `superpowers:using-superpowers`, `superpowers:subagent-driven-development` and `superpowers:dispatching-parallel-agents` as its first act:
+Install [`superpowers`](https://github.com/anthropics/claude-plugins-official) too — the Coordinator Prompt invokes `superpowers:using-superpowers` and `superpowers:dispatching-parallel-agents` as its first act, and every teammate runs `test-driven-development` and `verification-before-completion`:
 
 ```
 /plugin marketplace add anthropics/claude-plugins-official

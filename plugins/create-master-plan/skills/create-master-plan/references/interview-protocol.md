@@ -176,6 +176,8 @@ Concrete requirements discovered during the interview. Group by layer (data, per
 3. {High-level chunk 3}
 ```
 
+Below the sketch, a **Key interfaces** list: each contract the chunks hand each other (signature, endpoint, schema, key), which chunk produces it and which consume it. Record decisions, not code bodies.
+
 Stop at the chunk level — do NOT pre-decompose into phases.
 
 ### 7. Test Configuration
@@ -198,7 +200,10 @@ Checklist of gates the work must pass — pulled from the matching stack profile
 ### 9. Acceptance Criteria
 Checkbox list extracted from the ticket's stated AC (if present) PLUS every additional criterion surfaced by the interview. Each criterion must be testable.
 
-### 10. Success Criteria
+### 10. Review Focus
+Up to five inputs or failure modes the spec implies but no Acceptance Criterion or test category pins. Each line names the owning chunk and the test that pins it. Empty means checked, not skipped.
+
+### 11. Success Criteria
 
 ```markdown
 ## Success ✅
@@ -206,10 +211,10 @@ Checkbox list extracted from the ticket's stated AC (if present) PLUS every addi
 All acceptance criteria met + Validation & Testing checklist complete.
 ```
 
-### 11. Attachments
+### 12. Attachments
 List every file under `attachments/` with a one-line description. If empty, write `_(no attachments on this ticket)_`.
 
-### 12. Related Docs
+### 13. Related Docs
 Copy the list from `issue.specs` § Related local docs, condensed to one line per file with relevance.
 
 ## Output rules

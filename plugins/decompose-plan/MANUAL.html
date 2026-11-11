@@ -480,7 +480,7 @@ recommend at score >= 3, cap 4 per phase</code></pre>
 <table>
   <thead><tr><th>Dependency</th><th>Used for</th></tr></thead>
   <tbody>
-    <tr><td><code>superpowers</code> plugin</td><td><code>writing-plans</code> (plan + phase shape), <code>subagent-driven-development</code> (dispatch), <code>test-driven-development</code>, <code>verification-before-completion</code> (the done gate), <code>dispatching-parallel-agents</code></td></tr>
+    <tr><td><code>superpowers</code> plugin</td><td><code>writing-plans</code> (plan + phase shape), <code>test-driven-development</code>, <code>verification-before-completion</code> (the done gate), <code>dispatching-parallel-agents</code></td></tr>
     <tr><td><code>/code-review</code></td><td>Step 4 <span class="pill req">built in</span></td></tr>
     <tr><td><code>codex</code> CLI</td><td>Only to <em>run</em> the peer review of step 5, logged in. Generating the prompt never needs it <span class="pill">optional</span></td></tr>
     <tr><td><code>gh</code> CLI</td><td>Step 1's default fetch, authenticated. Swap in an <code>atlassian</code> or <code>linear</code> MCP for those trackers; skippable entirely if you plan from a plain description.</td></tr>
@@ -611,8 +611,7 @@ recommend at score >= 3, cap 4 per phase</code></pre>
 <h3>2 · superpowers plugin <span class="pill req">required</span></h3>
 <pre><code>/plugin
 # confirm these resolve in a session:
-#   superpowers:writing-plans, :subagent-driven-development,
-#   :test-driven-development, :verification-before-completion,
+#   superpowers:writing-plans, :test-driven-development, :verification-before-completion,
 #   :dispatching-parallel-agents</code></pre>
 
 <h3>3 · The ticket source <span class="pill">GitHub by default</span></h3>

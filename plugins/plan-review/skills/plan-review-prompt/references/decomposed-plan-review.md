@@ -67,6 +67,18 @@ flag any place a phase contradicts the master plan.
   framework's required setup, a mandatory guard/idiom) correctly propagated
   into the phases that need it?
 
+- Interfaces: for every cross-phase dependency, does the producing phase
+  state the exact contract (signature, endpoint, schema, key) and does the
+  consuming phase state the SAME text? A dependency with no stated contract,
+  or two phases describing one contract differently, is a defect.
+- Review Focus: if the master plan lists Review Focus items, is each one
+  assigned to exactly one phase and pinned by a named test there? List any
+  that were dropped in decomposition.
+- Do phases tell teammates to run `superpowers:subagent-driven-development`
+  or `superpowers:executing-plans` while also forbidding per-phase commits?
+  Those skills commit per task and finish the branch; the combination is
+  self-contradictory and should be flagged.
+
 ## 5. file:line accuracy (spot-check against the repo)
 - The phases inherit many `file:line` hints. Open a sample of the cited files
   and confirm the references resolve to the claimed surface area. Flag stale

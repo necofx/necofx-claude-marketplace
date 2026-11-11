@@ -14,9 +14,9 @@ The `{PLAN_KEY}` is used as a prefix in every phase file (`# GH-412 / Phase 02 �
 
 ### 2. Required sub-skill notice (optional but recommended)
 
-A one-line callout at the top stating which superpowers skill teammates should use to execute each phase. Example:
+A one-line callout at the top saying how this plan gets executed. Example:
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement each phase task-by-task.
+> **For agentic workers:** this plan is not executed directly. `/decompose-plan` turns it into phase files, and `/execute-master-plan` runs them a round at a time. Do not hand it to `superpowers:subagent-driven-development` or `superpowers:executing-plans`.
 
 ### 3. Goal
 
@@ -165,6 +165,10 @@ OOS is as important as in-scope. The decompose-plan skill warns the user if any 
 ### 13. Verification at the end
 
 A numbered list of end-to-end checks the coordinator runs after the last round completes. This becomes the basis of the operator manual-verification checklist (if there is one) and the `handoff.md § How to verify before merging` section.
+
+### 13b. Key interfaces and Review Focus (when present)
+
+Plans from `create-master-plan` 0.6.0 onward carry a **Key interfaces** list under the Implementation Outline and a `## Review Focus` section after the Acceptance Criteria (both shaped by `superpowers:writing-plans`). They feed each phase's Interfaces and Review Focus blocks — see SKILL.md Step 7. Older plans have neither; that is not a defect.
 
 ### 14. Open risks / pre-execution checks
 

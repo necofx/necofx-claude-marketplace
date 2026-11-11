@@ -62,15 +62,13 @@ The decomposition is organized in ROUNDS:
 ## Setup (do once, before Round 0)
 
 1. Invoke `Skill(skill="superpowers:using-superpowers")` — skill discipline.
-2. Invoke `Skill(skill="superpowers:subagent-driven-development")` — dispatch
-   discipline.
-3. Invoke `Skill(skill="superpowers:dispatching-parallel-agents")` if a round
+2. Invoke `Skill(skill="superpowers:dispatching-parallel-agents")` if a round
    has more than one phase.
-4. Read `{FOLDER}/{MASTER_PLAN_FILENAME}` end-to-end.
-5. Read `{FOLDER}/tasks.md` — single source of truth for status.
-6. Read every `{FOLDER}/phases/PHASE-*.md` so you know goals, dependencies,
+3. Read `{FOLDER}/{MASTER_PLAN_FILENAME}` end-to-end.
+4. Read `{FOLDER}/tasks.md` — single source of truth for status.
+5. Read every `{FOLDER}/phases/PHASE-*.md` so you know goals, dependencies,
    owner-agent, and acceptance criteria across the whole plan.
-7. Print a one-paragraph summary of what you're about to run, including the
+6. Print a one-paragraph summary of what you're about to run, including the
    round structure and the file-conflict-matrix verdict.
 
 ## Per-round loop
@@ -135,6 +133,11 @@ shape:
     - You are read-only for git. Do NOT request commits. The coordinator
       batches commits at end-of-round or end-of-plan and surfaces them to
       the user.
+    - You execute the phase file yourself. Do not run it through
+      `superpowers:subagent-driven-development`, `superpowers:executing-plans`
+      or `superpowers:finishing-a-development-branch`: they commit per task
+      and close the branch, which this workflow reserves for the coordinator
+      and for `close-master-plan`.
 
     Report back when you finish (or get blocked) with a one-paragraph summary
     of what landed and any deviations from the plan.

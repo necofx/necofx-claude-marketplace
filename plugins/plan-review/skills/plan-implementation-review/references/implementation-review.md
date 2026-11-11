@@ -56,6 +56,11 @@ written — review the live state and note the drift.
 - Walk each acceptance criterion in the spec and judge whether the changeset
   actually SATISFIES it — not merely "a relevant file was touched". Cite the
   code that meets it, or flag the gap.
+- If the plan has a Review Focus section (master plan or phase files), each
+  line names an input or failure mode and the test that pins it. Confirm the
+  test exists in the changeset, asserts what the line says, and passes. A
+  missing one is a High finding: those are the cases most likely to ship
+  broken.
 
 ### 1e. Honesty of status & outstanding items
 - The tracker (tasks.md or equivalent) claims phase statuses. For each phase

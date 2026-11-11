@@ -32,7 +32,7 @@ If the first line fails to clone, the `owner/repo` shorthand is trying SSH — p
 /plugin install superpowers@claude-plugins-official
 ```
 
-This skill loads `superpowers:writing-plans` to shape each phase file. More importantly, the phase files and the coordinator prompt it *generates* instruct the executing agents to invoke `subagent-driven-development`, `test-driven-development`, `verification-before-completion` and `dispatching-parallel-agents`. Without the plugin the skill logs a warning and falls back to its own references — but the real loss lands at execution time, because `verification-before-completion` is the gate that stops an agent claiming a phase is done when it is not.
+This skill loads `superpowers:writing-plans` to shape each phase file. More importantly, the phase files and the coordinator prompt it *generates* instruct the executing agents to invoke `test-driven-development`, `verification-before-completion` and `dispatching-parallel-agents`. They deliberately do **not** invoke `subagent-driven-development` or `executing-plans`: since superpowers 6.4 both commit after every task and finish the branch, while here the coordinator batches commits and `close-master-plan` owns the branch. Each teammate executes its phase file directly. Without the plugin the skill logs a warning and falls back to its own references — but the real loss lands at execution time, because `verification-before-completion` is the gate that stops an agent claiming a phase is done when it is not.
 
 ### 3. Install the specialist agents — recommended
 
