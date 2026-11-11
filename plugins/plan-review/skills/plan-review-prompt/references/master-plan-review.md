@@ -66,6 +66,15 @@ a settled decision, note it as out-of-scope for this review.
   appropriate handling", or any step that says WHAT without HOW where HOW is
   needed.
 - Are risks and out-of-scope explicit and believable?
+- Does the plan record DECISIONS (exact signatures, the spec's values, test
+  names with their assertions, commands) rather than transcribing code? A plan
+  several times longer than its spec, dominated by code blocks, is a
+  transcript: flag it, and flag the opposite failure (WHAT without HOW) too.
+- Review Focus: does the plan name the inputs or failure modes the spec
+  implies but no acceptance criterion or test pins? Name any it missed — the
+  boundary value, the empty or duplicate input, the concurrent or retried
+  call — and the part of the plan that should own each. If the plan has a
+  Review Focus section, check every line names an owner and a test.
 
 <Scrutinise especially: …  (add 0–3 bullets naming the plan-specific
 high-risk areas you noticed during onboarding — omit if none.)>

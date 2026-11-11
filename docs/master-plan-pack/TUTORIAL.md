@@ -474,8 +474,8 @@ That last block is the one to read before you dispatch anything. **The `## Coord
 ```markdown
 # GH-412 / Phase 01 — RefundService partial-refund domain
 
-> **For agentic workers:** REQUIRED SUB-SKILL: invoke
-> `superpowers:subagent-driven-development` before touching code.
+> **For agentic workers:** you are the teammate the coordinator dispatched for this
+> phase. Execute the Atomic steps yourself; commits are batched by the coordinator.
 
 **Goal:** RefundService accepts repeated partial refunds and rejects any that would
 breach the captured total.
@@ -499,6 +499,12 @@ JUnit 5 + AssertJ + Mockito. Rules: `.editorconfig`,
 
 - Phase 00: Flyway migration + refunds table
 
+## Interfaces
+
+- **Produces:** `RefundResult RefundService.refund(PaymentId id, Money amount, IdempotencyKey key)` — consumed by Phase 04
+- **Produces:** config key `payments.partial-refunds.enabled` (boolean, default `false`) — consumed by Phase 03
+- **Consumes:** table `refunds(payment_id, amount_minor, idempotency_key UNIQUE)` — produced by Phase 00
+
 ## Owner Agent
 
 `java-pro`
@@ -510,10 +516,9 @@ Risk: Medium — touches the payment state machine. Effort: ~2 h.
 ## Skills to Invoke (teammate-side)
 
 1. `Skill(skill="superpowers:using-superpowers")` — establish skill discipline
-2. `Skill(skill="superpowers:subagent-driven-development")` — execution discipline
-3. `Skill(skill="superpowers:test-driven-development")` — red-green-refactor
-4. `Skill(skill="superpowers:verification-before-completion")` — the done gate
-5. `Skill(skill="database-design:postgresql")` — *the sum constraint is enforced in the schema too*
+2. `Skill(skill="superpowers:test-driven-development")` — red-green-refactor
+3. `Skill(skill="superpowers:verification-before-completion")` — the done gate
+4. `Skill(skill="database-design:postgresql")` — *the sum constraint is enforced in the schema too*
 
 ## Documents to Read
 
@@ -551,11 +556,19 @@ Risk: Medium — touches the payment state machine. Effort: ~2 h.
 - [ ] **Step 01.k: Mark complete** — `Status = completed`, `Commits = (pending batch)`.
       **Do NOT request a commit.**
 
+## Review Focus
+
+- Refund of exactly the remaining captured amount — pinned by
+  `RefundServiceTest.exact_remaining_amount_closes_payment`: status becomes `REFUNDED`,
+  a further refund of 1 minor unit is rejected.
+
 ## Verification
 
 - [ ] Repeated partial refunds succeed until the captured total is reached
 - [ ] The refund that would breach the total returns a domain error, not an exception
 - [ ] `./gradlew :payments-api:build` → 0 warnings, 0 errors; `spotlessCheck` clean
+- [ ] Every Review Focus line has its named test, and it passes
+- [ ] `RefundService.refund` has exactly the signature in Interfaces
 - [ ] TDD-proof step performed and described in the tasks.md notes
 
 ## Notes for downstream phases
@@ -567,7 +580,7 @@ Risk: Medium — touches the payment state machine. Effort: ~2 h.
   the YAML directly.
 ```
 
-Two details in there carry most of the value. **The TDD proof** — deliberately break the implementation, confirm the tests that should fail do fail, restore — is what separates tests that verify behaviour from tests that merely execute code. And **Notes for downstream phases** is how a phase talks to a phase that has not started yet, in a run where they never share a conversation.
+Three details in there carry most of the value. **Interfaces** state each cross-phase contract as a decision — the exact signature Phase 04 will call — copied word for word into the consuming phase, so two teammates who never talk agree on it anyway. **The TDD proof** — deliberately break the implementation, confirm the tests that should fail do fail, restore — is what separates tests that verify behaviour from tests that merely execute code. And **Notes for downstream phases** is how a phase talks to a phase that has not started yet, in a run where they never share a conversation.
 
 ### Read the output before you run anything
 

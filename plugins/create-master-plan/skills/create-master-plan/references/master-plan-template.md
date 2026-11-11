@@ -1,6 +1,6 @@
 # master-plan.md — canonical skeleton
 
-The `create-master-plan` skill writes this file in Step 8, AFTER the interview in Step 7 has filled the gaps in `issue.specs`. Apply the `superpowers:writing-plans` discipline on top of this skeleton, and substitute stack-specific values from `tech-stack-profiles.md`.
+The `create-master-plan` skill writes this file in Step 8, AFTER the interview in Step 7 has filled the gaps in `issue.specs`. Apply the `superpowers:writing-plans` discipline on top of this skeleton — the parts of it that fit a master plan, listed in `references/master-plan-generation.md` — and substitute stack-specific values from `tech-stack-profiles.md`.
 
 Sections are mandatory unless explicitly marked optional. Replace every `{placeholder}` with a real value. Replace every `_(none)_` placeholder with concrete content from the interview, or keep it if the interview confirmed there really is none.
 
@@ -9,6 +9,10 @@ For mixed-stack plans (e.g. .NET API + React UI), the Tech Stack section lists e
 ---
 
 # {TICKET-ID} — Master Plan: {Short title}
+
+> **For agentic workers:** this plan is not executed directly. `/decompose-plan` turns it into phase files and `/execute-master-plan` runs them a round at a time. Do not hand it to `superpowers:subagent-driven-development` or `superpowers:executing-plans`.
+
+**Spec:** [`issue.specs`](issue.specs) — the binding authority. Where this plan and the spec disagree, the spec wins.
 
 ## Context
 
@@ -145,6 +149,11 @@ Grouped by layer when applicable. Each requirement is a complete sentence descri
 3. {High-level chunk 3}
 4. _(add more as needed; don't pre-decompose into phases)_
 
+**Key interfaces** — the contracts the chunks hand each other, as decisions rather than code: exact signatures, endpoint shapes, schema columns, event names, config keys. `/decompose-plan` copies each into the Interfaces block of the phase that produces it and of every phase that consumes it.
+
+- `{Signature, endpoint, table or key}` — produced by chunk {N}, consumed by chunk(s) {M, …}
+- _(none if the chunks share no contract)_
+
 ---
 
 ## Test Configuration
@@ -222,6 +231,17 @@ Checkbox list. Every item must be **testable** — observable in code, runtime b
 - [ ] {Criterion 2 — from the ticket's stated AC}
 - [ ] {Criterion 3 — surfaced by the interview}
 - [ ] {…}
+
+---
+
+## Review Focus
+
+Up to five inputs or failure modes the spec implies but that neither an Acceptance Criterion nor a Test Configuration category already pins — the cases an implementer is most likely to ship broken because nobody named them. Each line names the chunk that owns the code and the test that will pin it; `/decompose-plan` carries it into that chunk's phase.
+
+- {Input class or failure mode, e.g. "refund of exactly the remaining captured amount"} — chunk {N} — pinned by {test name and its assertion}
+- _(none — checked, and every implied case is already pinned above)_
+
+An empty list means you checked and found none, not that you skipped the check.
 
 ---
 

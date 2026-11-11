@@ -176,7 +176,7 @@ Skip this step if Step 4a applied.
 
 ### Step 5.5 — Push the branch and open the PR
 
-Skip this step for `abandoned` — a branch about to be deleted gets no PR; Step 9's rescue path
+Skip this step for `abandoned` — a branch about to be deleted gets no PR; Step 8's rescue path
 handles that case instead.
 
 **This runs before the stamp, and the ordering is the whole point.** The header records `PR #<n>`,
@@ -258,98 +258,12 @@ Once the move is staged, create or update `<plans-root>/INDEX.md` per `reference
 
 ### Step 8 — Commit, push, and hand back
 
-By this point two different things have already happened to the plan folder's content, and it's
-worth being precise about which: Step 7's `git mv` already staged the move itself, and along with
-it whatever was on disk at that moment — the reconciled `tasks.md` and the headers Step 6 stamped,
-since both were written before Step 7 ran. What is *not* yet staged is the `INDEX.md` Step 7 just
-created or updated (disk-only until now). This step's `git add` is what stages that — re-adding the
-already-staged plan-folder paths alongside it is a harmless no-op.
-
-For `completed` and `superseded`, **run** this, then push:
-
-```sh
-git add docs/plans && git commit -m "GH-412: close plan"
-git push
-```
-
-The close commit lands in the PR Step 5.5 opened, seconds after it. The reviewer sees the work and
-its close-out in one place.
-
-For `abandoned`, the same commit **plus** the rescue — and this is the one path in the skill that
-**confirms each command with the user before running it**, because its expected outcome is that a
-branch carrying real work disappears:
-
-```sh
-git add docs/plans && git commit -m "GH-412: close plan (abandoned)"
-# the branch is being deleted — the archive must also land on the default branch:
-git switch main && git cherry-pick <that-commit>
-```
-
-The commit alone is not durable: it sits on a branch about to be deleted, and without the
-cherry-pick the archive this skill exists to preserve is lost along with it. Warn the user the
-cherry-pick commonly hits rename/delete conflicts — the plan folder usually never existed on the
-default branch at all, only on the branch being abandoned, so there is no pre-image for Git to
-rename from. Resolve by `git add`-ing the reported paths to accept the incoming files, then
-`git cherry-pick --continue`; this is expected, not a sign anything went wrong.
-
-Always stage explicit paths — `docs/plans` — never `git add -A`; the close commit must contain the
-close and nothing else.
-
-Then **report and stop**, stating plainly what is now true and what is not: the plan is archived,
-the branch is pushed, the PR is open at `<url>` — **and the merge is yours**. Tell the user to run
-`/close-master-plan <ID>` again once it has merged, and that the second run is what deletes the
-branch and removes the worktree. Nothing else in this skill runs until then.
+**Read `references/close-commit.md` now and follow it.** In short: stage `docs/plans` explicitly (never `git add -A`), commit `<ID>: close plan`, push into the PR Step 5.5 opened. For `abandoned` the commit is followed by a cherry-pick onto the default branch, and that path confirms each command with the user first. Then report and stop — **the merge is the user's**, and a second `/close-master-plan <ID>` after it merges is what cleans up.
 
 ### Step 9 — Clean up  *(phase 2, reached only from Step 1)*
 
-Step 1 sends the run here when the plan is already in `closed/` and `gh` confirmed its PR is
-`MERGED`. Apply `references/git-lifecycle.md`'s phase-2 section. Steps 2 through 8 do not run: there
-is nothing left to reconcile, verify, stamp or move.
-
-1. **Guard first.** If the worktree holds uncommitted changes or unpushed commits, stop and list
-   them. Cleanup would destroy work that exists nowhere else, and a merged PR says nothing about
-   what someone added afterwards.
-2. **Leave and remove in one operation:** `ExitWorktree` with `action: "remove"`, which returns the
-   session to the directory it started in. A worktree cannot be removed from inside itself — this is
-   the harness's own answer to that, and the reason the skill no longer needs to hand the problem
-   back to the user. When the session is *not* in a worktree (phase 2 run later from the main
-   checkout), use `git worktree remove <path>` instead, which is safe from there.
-3. `git switch <default-branch> && git pull`. The merge already brought `closed/<ID>/` and the
-   updated `INDEX.md` to the default branch, so this is where the archive becomes visible outside
-   the branch.
-4. **Delete the branch, local and remote.** After a squash merge `git branch -d` fails with "not
-   fully merged", because the branch's content reached the default branch under a different SHA.
-   Use `-D` **only** because Step 1 already confirmed `MERGED`, and say that out loud when you do —
-   an unexplained `-D` reads like data loss. Then `git push origin --delete <branch>`, tolerating a
-   remote branch that is already gone because the repository auto-deletes on merge.
-5. **Report** what was cleaned, what was already gone, and where the session is standing now.
-
-**Every step here is idempotent and optional.** Between the two phases a human closes sessions — and
-the harness asks whether to keep or remove the worktree on exit — so by the time phase 2 runs the
-usual case is that the worktree is *already* gone, the branch may be gone too, and the session may
-already be on the default branch. Check, act if there is something to do, and report what was
-already done. **Phase 2 never fails because something already happened.**
-
-If CodeGraph left a daemon holding files under the worktree, stop it before removing the tree; if
-removal still fails, report it and let the user re-run rather than forcing it.
+Step 1 sends the run here when the plan is already in `closed/` and `gh` confirmed its PR is `MERGED`. Steps 2 through 8 do not run. **Read `references/cleanup.md` now and follow it** — the guard against unpushed work, leaving and removing the worktree, switching and pulling the default branch, deleting the branch local and remote, and the report. Every step there is idempotent: phase 2 never fails because something already happened.
 
 ## Correcting a mistaken close
 
-There is no reopen command. Undoing a phase-1 close is `git revert` of the close commit, or a manual
-reverse: `git mv` the folder back to `active/`, remove the header from each file it was stamped
-into, and delete the row `INDEX.md` gained. Close the PR Step 5.5 opened, or leave it open if the
-work is still going somewhere.
-
-There's no reopen command because a reopen would have to honestly reverse two different kinds of
-change at once: restore whichever header the stamp replaced (only recoverable if that prior header
-is still visible in git history), and undo the `tasks.md` reconciliation the user built by hand in
-Step 4. Automating that would be claiming a reversibility this skill cannot honestly guarantee —
-`git revert` or a manual fix says exactly what happened, instead of pretending the close never
-occurred.
-
-**Phase 2 is the safer half, by construction.** It only ever runs after `gh` confirmed the PR
-merged, so everything it deletes is redundant with the default branch: the branch's content is on
-`main` under some SHA, and the worktree was a second checkout of a branch that no longer has unique
-work in it. If a deleted branch is wanted back, `git switch -c <branch> <merge-commit>` recreates
-it; if the worktree is wanted back, make another one. The one thing phase 2 refuses to do is run
-before that confirmation — which is exactly why the merge is not this skill's to perform.
+There is no reopen command: undo a phase-1 close with `git revert` of the close commit. The full reasoning, and the manual reverse, are in `references/cleanup.md` § Correcting a mistaken close.

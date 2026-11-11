@@ -1,6 +1,6 @@
 # {PLAN_KEY} / Phase {NN} — {TITLE}
 
-> **For agentic workers:** REQUIRED SUB-SKILL: invoke `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` before touching code. Atomic steps use checkbox (`- [ ]`) syntax for tracking — tick them off in this file as you go.
+> **For agentic workers:** you are the teammate the coordinator in `../execute-plan.md` dispatched for this phase. Execute the Atomic steps below yourself, in order, under the skills listed in "Skills to Invoke". Do not hand this file to `superpowers:subagent-driven-development` or `superpowers:executing-plans`: both commit after every task and end in `superpowers:finishing-a-development-branch`, and in this workflow commits are batched by the coordinator and the branch belongs to `close-master-plan`. Atomic steps use checkbox (`- [ ]`) syntax for tracking — tick them off in this file as you go.
 
 **Goal:** {One sentence describing the outcome of this phase. No "and"; if you need an "and", split the phase.}
 
@@ -36,6 +36,14 @@ Exhaustive Create / Modify list. The coordinator uses this to detect file-confli
 - Phase {XX}: {Title}
 - Phase {YY}: {Title}
 
+## Interfaces
+
+The contracts this phase hands other phases, as decisions rather than code. Copied from the master plan's **Key interfaces** list (when it has one) and from the phase boundaries you drew. A teammate implements exactly these; a mismatch with what the code turns out to need goes into the per-phase notes of `tasks.md`, never into a silent change.
+
+- **Produces:** `{exact signature / endpoint shape / table + columns / config key}` — consumed by Phase {MM}
+- **Consumes:** `{exact signature …}` — produced by Phase {KK}
+- _(none — this phase shares no contract with another)_
+
 ## Owner Agent
 
 {The agent type / skill that should execute this phase. Pick the right specialist for the tech stack. Examples by stack:}
@@ -66,15 +74,14 @@ This list is populated by `SKILL.md` Step 7 using the inventory built in Step 6.
 **Always-on (every phase):**
 
 1. `Skill(skill="superpowers:using-superpowers")` — establish skill discipline
-2. `Skill(skill="superpowers:subagent-driven-development")` — execution discipline for this phase
-3. `Skill(skill="superpowers:test-driven-development")` — red-green-refactor for the new tests *(omit for non-code phases)*
-4. `Skill(skill="superpowers:verification-before-completion")` — required gate before marking complete
+2. `Skill(skill="superpowers:test-driven-development")` — red-green-refactor for the new tests *(omit for non-code phases)*
+3. `Skill(skill="superpowers:verification-before-completion")` — required gate before marking complete
 
 **Matched for this phase** (top 2–4 from the inventory, score ≥ 3 against the phase's tags):
 
-5. `Skill(skill="<matched-name-1>")` — *<6–12 word "why", specific to this phase>*
-6. `Skill(skill="<matched-name-2>")` — *<6–12 word "why">*
-7. *(more if they pass the threshold, up to 4 total)*
+4. `Skill(skill="<matched-name-1>")` — *<6–12 word "why", specific to this phase>*
+5. `Skill(skill="<matched-name-2>")` — *<6–12 word "why">*
+6. *(more if they pass the threshold, up to 4 total)*
 
 Example shapes per stack (DELETE the example block once the real matched list is written):
 
@@ -212,6 +219,13 @@ The command and code-snippet placeholders are intentionally stack-neutral. Subst
 
 ---
 
+## Review Focus
+
+The master plan's Review Focus lines this phase owns: inputs or failure modes the spec implies that no other test pins. Each one is a test this phase adds in Step {NN}.6+, named here with its assertion.
+
+- {Input class or failure mode} — pinned by `{TestName}`: {assertion}
+- _(none — the master plan assigns no Review Focus line to this phase)_
+
 ## Verification
 
 Concrete, testable outcomes that prove the phase is complete. The coordinator and reviewer check these before flipping `Status = completed`.
@@ -222,6 +236,8 @@ Concrete, testable outcomes that prove the phase is complete. The coordinator an
   - .NET / Blazor: project's `.editorconfig` + `.claude/rules/*.md` rules respected (e.g. `var` policy, brace style, async-suffix, structured logging templates, no internal-context leaks in user-facing log strings)
   - React: `<pm> run lint` clean, `<pm> run typecheck` clean, Prettier formatted
   - Delphi: project's coding-standards rules respected (begin/end blocks, PascalCase, no trailing whitespace)
+- [ ] Every Review Focus line above has its named test, and it passes.
+- [ ] Every **Produces** contract in Interfaces exists with exactly the stated shape.
 - [ ] TDD-proof step performed and described in the per-phase notes.
 
 ## Notes for downstream phases

@@ -22,6 +22,8 @@ The expected input shape is documented in `references/master-plan-format.md`. Ke
 
 ## Workflow
 
+Before Step 1, read `references/operator-notes.md` — the standing rules every step below assumes.
+
 Follow these steps in order. Do not skip steps.
 
 ### Step 1 — Parse argument and discover the master plan
@@ -148,61 +150,19 @@ For each phase, create `<folder>/phases/PHASE-NN-<slug>.md` using the template a
 - `NN` is two-digit zero-padded starting at `00` (Round 0 typically gets `00`).
 - `<slug>` is lowercase-kebab from the phase title, max 6 words.
 
-Every phase file MUST include all sections from the template in this order: REQUIRED SUB-SKILL header, Goal, Architecture, Tech Stack, Files, Dependencies, Owner Agent, Risk / Effort, Skills to Invoke, Documents to Read, Pre-execution check, Atomic steps (with TDD discipline), Verification, Notes for downstream phases.
+Every phase file MUST include all sections from the template in this order: agentic-workers header, Goal, Architecture, Tech Stack, Files, Dependencies, Interfaces, Owner Agent, Risk / Effort, Skills to Invoke, Documents to Read, Pre-execution check, Atomic steps (with TDD discipline), Review Focus, Verification, Notes for downstream phases.
+
+Three things carry over from the master plan, and none may be dropped on the way:
+
+- **Interfaces.** Every entry in the master plan's **Key interfaces** list lands in the Interfaces block of the phase that produces it and of every phase that consumes it, with identical text on both sides. A cross-phase dependency with no matching Produces/Consumes pair is a gap in the decomposition — add the contract.
+- **Review Focus.** Every master-plan Review Focus line is assigned to exactly one phase — the one owning the code — and becomes a named test in that phase's steps.
+- **Decisions, not code.** Steps state signatures, the spec's values, test names with their assertions, and commands with their expected output. A code body only for an algorithm those don't determine.
+
+Master plans written before these sections existed have neither list: derive Interfaces from the phase boundaries, and write `_(none in the master plan)_` under Review Focus.
 
 #### Filling "Skills to Invoke" (uses the Step 6.5 inventory)
 
-For each phase, derive these per-phase tags from the master plan + the phase's Files/Goal/Architecture:
-
-- **Stack tag(s)** — from the tech-stack profile(s) chosen in Step 3.5 (e.g. `.net`, `blazor`, `react`, `delphi`). Multiple if the phase straddles stacks.
-- **Layer tag(s)** — by inspecting the phase's Files list and Goal: e.g. `data`, `persistence`, `service`, `api`, `ui`, `test`, `infra`, `docs`.
-- **Domain tag(s)** — by keyword in the phase's Goal + Architecture: e.g. `security`, `performance`, `database`, `network`, `ui`, `deploy`, `debug`, `architecture`.
-- **Verb tag** — `implement` (most code phases), `fix` (bug-fix phases), `refactor` (cleanup phases), `review` (audit phases), `document` (doc phases).
-
-Then build the Skills to Invoke list:
-
-1. **Always-on superpowers (in this order):**
-   - `superpowers:using-superpowers` — "establish skill discipline"
-   - `superpowers:subagent-driven-development` — "execution discipline for this phase"
-   - For any phase delivering code: `superpowers:test-driven-development` — "red-green-refactor for the new tests"
-   - `superpowers:verification-before-completion` — "required gate before marking complete"
-
-2. **Matched skills (2–4 of these):**
-   - Query the Step 6.5 inventory: for each candidate skill, score it by counting matches between the skill's `hints.{stack,domain,verb}` and the phase's tags.
-   - Apply the rules in `references/skill-matching-heuristics.md` § "Scoring" — stack matches weight 3, domain matches 2, verb matches 1; require score ≥ 3 to recommend.
-   - Sort by score, take the top 2–4. Prefer `active` source over `project-local` over `user-global` on ties (higher confidence the skill is actually loadable).
-   - Reject low-confidence matches rather than padding the list. Empty is fine for trivial phases; the always-on superpowers always carry the floor.
-
-3. **Format every line as `Skill(skill="<name>") — <why, in 6–12 words>`.** The "why" must reference the phase, not parrot the skill description. Examples:
-   - `Skill(skill="dotnet-senior-developer-skill") — implementing the new Autofac module and service`
-   - `Skill(skill="security-auditor") — reviewing the new auth handler for OWASP issues`
-   - `Skill(skill="react-senior-developer-skill") — building the new React component with state management`
-
-4. **Hard rules:**
-   - Never invent a skill name not in the inventory.
-   - Never include a skill purely "because it might be useful" — if it doesn't pass the score threshold, leave it out.
-   - When a phase has no matched skills beyond the always-ons, write `_(no domain-specific matches for this phase; the always-on superpowers cover it)_` instead of inflating the list.
-   - When two skills overlap heavily (e.g. `dotnet-senior-developer` and `dotnet-senior-developer-skill`), pick the better-matched one — do not list both.
-   - When the inventory is missing a skill the phase obviously needs (e.g. a phase says "build SNMP discovery" but no `network-engineer` skill is registered), record this gap in the per-phase notes section of `tasks.md § Coordination Notes` so the user knows to install the missing skill or accept the gap.
-
-The **Atomic steps** must follow the TDD-discipline pattern when the phase delivers code:
-
-```
-- [ ] Step N.0: Claim the phase (set tasks.md row to in_progress)
-- [ ] Step N.1: Locate / read the existing surface area being changed
-- [ ] Step N.2: Author the first failing test
-- [ ] Step N.3: Run; expect FAIL with the exact reason
-- [ ] Step N.4: Implement the minimum to make it pass
-- [ ] Step N.5: Run; expect PASS
-- [ ] Step N.6+: Add more tests (edge cases, ctor guards, cancellation, …)
-- [ ] Step N.k-2: Full solution build + test
-- [ ] Step N.k-1: TDD proof — temporarily break the impl, re-run, restore
-- [ ] Step N.k:   Mark phase complete in tasks.md (Status = completed, Commits = "(pending batch)")
-```
-
-**Phases do NOT commit.** Commits are deferred to end-of-round or end-of-plan batches surfaced by the coordinator. Each phase produces a clean, building, fully-tested working tree; the coordinator decides when to surface the batched `git add … && git commit -m "…"` command to the user. The `Commits` column in `tasks.md` records `(pending batch)` until the batch lands; the SHA(s) are filled in by the coordinator after the user runs the batch.
-
-For non-code phases (research, ADR, doc rewrite), omit the TDD steps and substitute domain-appropriate atomic steps.
+**Read `references/phase-filling.md` now, before writing the first phase file.** It covers deriving each phase's stack / layer / domain / verb tags, scoring the Step 6.5 inventory into the Skills to Invoke list (always-on superpowers first — never `subagent-driven-development` or `executing-plans`), and the TDD-shaped Atomic steps skeleton. **Phases do NOT commit**: the last step marks the phase `completed` with `Commits = (pending batch)`, and the coordinator batches commits.
 
 ### Step 8 — Create `tasks.md`
 
@@ -229,7 +189,7 @@ Create `<folder>/execute-plan.md` from the template at `references/execute-plan-
 
 The orchestrator prompt must instruct the coordinator to:
 
-1. Invoke `superpowers:using-superpowers` and `superpowers:subagent-driven-development`
+1. Invoke `superpowers:using-superpowers`, plus `superpowers:dispatching-parallel-agents` when a round has more than one phase
 2. Read `tasks.md`, every `phases/PHASE-*.md`, and the master plan
 3. Dispatch each round as a single message with multiple parallel `Agent` calls, named `phase-NN` with `team_name="{PLAN_SLUG}"` and `subagent_type` set to the phase's owner agent (default `general-purpose`)
 4. Wait for every phase in a round to reach `completed` before dispatching the next round
@@ -279,13 +239,4 @@ Canonical structure for the final code-review hand-off document. Read at the sta
 
 ## Notes for the skill operator
 
-- This skill writes files but does NOT execute the plan. Execution happens in a separate conversation triggered by `execute-plan.md`.
-- **CodeGraph, when the repo has one.** If a `.codegraph/` directory exists at the repository root, prefer `codegraph_explore` (MCP) or `codegraph explore` / `node` / `callers` / `impact` (shell) over `Glob`/`Grep`/`Read` loops for every "where does this live / who depends on it" question in Steps 4–7. One call returns verbatim line-numbered source plus call paths plus blast radius, which is what decomposition actually needs, at a fraction of the tokens — and it resolves dynamic dispatch that a text search cannot follow. The index lags writes by about a second. If there is no `.codegraph/` directory, use the ordinary tools and do NOT index the repository yourself — that is the user's decision.
-- If the master plan is too vague to decompose into clean rounds, stop and ask the user to clarify rather than fabricating phases.
-- Always preserve the master plan file as-is; never edit it.
-- Prefer fewer, well-scoped phases over many trivial ones. If a phase has fewer than three meaningful tasks, merge it with a neighbour.
-- **Tech-stack agnostic.** This skill works on .NET, Blazor, React, Delphi, and Java/JVM projects out of the box (and any stack you add to `tech-stack-profiles.md`). All stack-specific build commands, test commands, code-style rules, and conventions live in that one reference — the SKILL.md and templates only refer to it abstractly. To extend to a new stack, add a profile, not a special case here.
-- **Mixed-stack projects** (e.g. .NET API + React SPA, or Delphi desktop + .NET REST server) get per-phase Tech Stack lines. The skill tags each phase with the stack of the files it touches.
-- **Coding-rules files.** When the project has a `.claude/rules/*.md` directory (or equivalent — `CONTRIBUTING.md`, `STYLE.md`, `.editorconfig`), cite the specific rule files in each phase's "Documents to Read" section instead of restating the rules. If the project has none, fall back to the profile's general guidance and note that fact in the per-phase notes of `tasks.md`.
-- **Git constraint and commit cadence.** Phases never request commits themselves — the templates generated by this skill omit the per-phase commit step. Commits are deferred to **batches** (typically end-of-round or end-of-plan) surfaced by the coordinator to the user. This keeps multi-agent execution flowing without per-phase interruptions. The user remains the only actor who runs `git commit`; the coordinator simply assembles copy-pasteable commands once a coherent batch is green. When the project enforces read-only git for Claude Code (e.g. via `.claude/rules/git-workflow.md`), the batch commands are emitted as text — the user runs them. When the project lets agents commit, the coordinator may run the batch directly.
-- **Recommended teammate-side superpowers.** Always include `superpowers:using-superpowers`, `superpowers:subagent-driven-development`, `superpowers:verification-before-completion`. Add `superpowers:test-driven-development` for code phases. Add stack-specific skills (e.g. `dotnet-senior-developer-skill`, `delphi-senior-developer-skill`, frontend skills for React, Blazor-specific skills if available) per the matching profile.
+Standing rules for the whole run — CodeGraph use, never editing the master plan, phase sizing, stack agnosticism, coding-rules files, the batched-commit cadence, and which superpowers teammates get — live in `references/operator-notes.md`. Read it once before Step 1.
