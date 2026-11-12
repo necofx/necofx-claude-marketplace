@@ -79,7 +79,7 @@ They are separate plugins because they run in separate conversations — that is
 
 The peer-review step is a genuine second opinion, not a gate: the workflow closes without it, and `/code-review` inside Claude Code covers the ordinary case. `/close-master-plan` always runs last, whether or not that optional review happened.
 
-**One worked example joins all five:** [`docs/master-plan-pack/TUTORIAL.md`](docs/master-plan-pack/TUTORIAL.md) follows a single ticket across a polyglot repository — Java, Python, PostgreSQL, Docker, Kubernetes — from adding the marketplace to the final review, with the real artifacts each step produces. Read it once before your first run; the per-plugin READMEs are the reference you come back to.
+**One worked example joins all five:** [`docs/master-plan-pack/TUTORIAL.md`](docs/master-plan-pack/TUTORIAL.md) follows a single ticket across a polyglot repository — Java, Python, PostgreSQL, Docker, Kubernetes — from adding the marketplace to the final review, with the real artifacts each step produces. Read it once before your first run; the per-plugin READMEs are the reference you come back to. For the five-minute picture version, start with [`TUTORIAL-ELI5.md`](docs/master-plan-pack/TUTORIAL-ELI5.md).
 
 You can start at step 2: hand-write `issue.specs` and `master-plan.md` and nothing downstream knows the difference. Only step 1 touches a tracker at all, and it reads GitHub by default — Jira, Linear and pasted text are adapter profiles, selected by a detection ladder.
 
